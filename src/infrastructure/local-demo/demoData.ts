@@ -7,7 +7,6 @@ import type { CampaignNote } from '@domain/entities/note'
 import type { Quest, TimelineSession } from '@domain/entities/timeline'
 import type { CampaignWorkspace } from '@domain/repositories/campaignRepository'
 import {
-  createDefaultAction,
   createDefaultArmor,
   createDefaultAttack,
   createDefaultFeature,
@@ -93,7 +92,6 @@ function createDemoCharacter(): Character {
       'Campos libres para conjuros, recursos y rasgos. Este ejemplo es original y no reproduce reglas oficiales.',
     turnState: createDefaultTurnState(30, 1),
     actions: [
-      { ...createDefaultAction('demo-player'), id: 'action_use_object', name: 'Use an Object', quickNotes: 'Ideal para palancas, pociones o artefactos.' },
       {
         id: 'action_arcane_device',
         name: 'Arcane Device',

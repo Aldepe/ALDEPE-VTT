@@ -7,7 +7,6 @@ import {
   Dice5,
   Eye,
   Footprints,
-  MoveRight,
   RotateCcw,
   ShieldAlert,
   Sparkles,
@@ -67,7 +66,6 @@ const actionCostSections: Array<{ id: ActionOptionCostGroup; title: string; eyeb
   { id: 'consumeAction', title: 'Action', eyebrow: 'Action', description: 'Ataque, spell o accion principal.' },
   { id: 'consumeBonusAction', title: 'Bonus', eyebrow: 'Bonus', description: 'Solo opciones reales disponibles.' },
   { id: 'freeAction', title: 'Free', eyebrow: 'Free', description: 'Opciones libres y rasgos pasivos.' },
-  { id: 'movement', title: 'Move', eyebrow: 'Move', description: 'Movimiento del turno.' },
 ]
 
 function actionCostLabel(cost: ActionCost): string {
@@ -94,6 +92,11 @@ function resourceClass(state: 'ready' | 'pending' | 'spent'): string {
   return `is-${state}`
 }
 
+function isLegacyUseObjectAction(action: CharacterAction): boolean {
+  const normalizedName = action.name.trim().toLowerCase()
+  return normalizedName === 'use an object' || normalizedName === 'use object'
+}
+
 function patchAttack(character: Character, attack: CharacterAttack): Character {
   return {
     ...character,
@@ -117,11 +120,6 @@ function optionIcon(option: TurnActionOption): LucideIcon {
     hide: Eye,
     object: Sparkles,
     feature: Zap,
-    move: Footprints,
-    climb: Footprints,
-    swim: Footprints,
-    jump: Zap,
-    stand: MoveRight,
   }
 
   return icons[option.id] ?? Sparkles
@@ -165,6 +163,7 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
   )
   const actionOptionsByCost = useMemo(() => ListTurnActionOptionsByCostUseCase(character, movementDraftFeet), [character, movementDraftFeet])
   const movementRemaining = Math.max(0, resourceSummary.movementAvailable - resourceSummary.movementPending)
+  const configuredActions = useMemo(() => character.actions.filter((action) => !isLegacyUseObjectAction(action)), [character.actions])
   const sortedPlanItems = [...turnPlan.items].sort((left, right) => left.sortOrder - right.sortOrder)
 
   function addAttack() {
@@ -255,6 +254,24 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
     setTurnPlan((current) => SelectTurnActionUseCase(current, { feature }))
     setSelectionCost(undefined)
     setFeedback(`${feature.name} anadido al plan.`)
+  }
+
+  function addMovementPlan() {
+    const plannedFeet = Math.min(movementDraftFeet, movementRemaining)
+
+    if (plannedFeet <= 0) {
+      setFeedback('No queda movimiento disponible para planificar.')
+      return
+    }
+
+    setTurnPlan((current) =>
+      SelectTurnActionUseCase(current, {
+        movementCost: plannedFeet,
+        movementName: 'Move',
+        movementSummary: `Move: ${plannedFeet} ft`,
+      }),
+    )
+    setFeedback(`Movimiento de ${plannedFeet} ft anadido al plan.`)
   }
 
   function computeTurn() {
@@ -380,7 +397,7 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
             </button>
           </div>
           <div className="action-manager-list">
-            {character.actions.map((action) => {
+            {configuredActions.length ? configuredActions.map((action) => {
               const isEditing = editingActionId === action.id
               return (
                 <article className="action-manager-card" key={action.id}>
@@ -449,7 +466,13 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
                   ) : null}
                 </article>
               )
-            })}
+            }) : (
+              <div className="empty-state compact-empty">
+                <Sparkles size={24} aria-hidden="true" />
+                <strong>Sin acciones configuradas</strong>
+                <p>Crea solo las acciones especiales que necesite esta ficha.</p>
+              </div>
+            )}
           </div>
         </details>
       ) : null}
@@ -497,14 +520,20 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
             </section>
           ))}
         </div>
-        <label className="movement-planner-control">
-          <span>Movimiento a planificar</span>
-          <NumberInput max={resourceSummary.movementAvailable} min={0} onChange={(event) => setMovementDraft({ baseSpeed: character.speed, feet: Number(event.target.value) })} value={movementDraftFeet} />
-          <small>ft</small>
+        <div className="movement-planner-control">
+          <label className="movement-planner-field">
+            <span>Movimiento a planificar</span>
+            <NumberInput max={movementRemaining} min={0} onChange={(event) => setMovementDraft({ baseSpeed: character.speed, feet: Number(event.target.value) })} value={Math.min(movementDraftFeet, movementRemaining)} />
+            <small>ft</small>
+          </label>
+          <button className="ghost-button" disabled={movementRemaining <= 0} onClick={addMovementPlan} type="button">
+            <Footprints size={16} aria-hidden="true" />
+            Anadir movimiento
+          </button>
           <small className="movement-planner-hint">
             Base {character.speed} ft{resourceSummary.dashPending ? ` - Dash activo: ${resourceSummary.movementLimit} ft disponibles` : ''}
           </small>
-        </label>
+        </div>
       </section>
 
       {selectionMode === 'attack' ? (

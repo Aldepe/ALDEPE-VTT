@@ -87,14 +87,23 @@ export function createDefaultAction(characterId: ID): CharacterAction {
   void characterId
   return {
     id: createId('action'),
-    name: 'Use an Object',
+    name: 'Nueva accion',
     actionCost: 'action',
-    range: 'Self / touch',
-    description: 'Interactúa con un objeto importante del encuentro.',
-    quickNotes: 'El DM confirma el coste exacto antes de computar el turno.',
+    range: 'Self',
+    description: 'Describe el efecto de esta accion personalizada.',
+    quickNotes: '',
     applicableTriggerIds: [],
     used: false,
   }
+}
+
+function isLegacyUseObjectAction(action: CharacterAction): boolean {
+  const normalizedName = action.name.trim().toLowerCase()
+  return normalizedName === 'use an object' || normalizedName === 'use object'
+}
+
+function sanitizeConfiguredActions(actions: CharacterAction[] = []): CharacterAction[] {
+  return actions.filter((action) => !isLegacyUseObjectAction(action))
 }
 
 export function createDefaultAttack(): CharacterAttack {
@@ -241,7 +250,7 @@ export function hydrateCharacterDefaults(character: CharacterSheet): CharacterSh
     senses: character.senses ?? [],
     currency: character.currency ?? createDefaultCurrency(),
     turnState: hydratedTurnState,
-    actions: character.actions ?? [],
+    actions: sanitizeConfiguredActions(character.actions),
     attacks: character.attacks ?? [],
     triggers: character.triggers ?? [],
     features: (character.features ?? []).map((feature) => ({
@@ -325,7 +334,7 @@ export function createBlankCharacter(campaignId: ID, ownerUserId: ID): Character
     currency: createDefaultCurrency(),
     spellsAndFeatures: '',
     turnState: createDefaultTurnState(30),
-    actions: [createDefaultAction(ownerUserId)],
+    actions: [],
     attacks: [createDefaultAttack()],
     triggers: [createDefaultTrigger()],
     features: [createDefaultFeature()],

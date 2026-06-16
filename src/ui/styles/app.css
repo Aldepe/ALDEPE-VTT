@@ -1342,12 +1342,24 @@ textarea:focus {
 
 .movement-planner-control {
   display: grid;
-  grid-template-columns: auto 110px auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   margin-top: 12px;
+  padding: 10px;
+  border: 1px solid rgba(105, 167, 255, 0.26);
+  border-radius: 8px;
+  background: rgba(105, 167, 255, 0.08);
   color: var(--muted);
   font-weight: 800;
+}
+
+.movement-planner-field {
+  display: grid;
+  grid-template-columns: auto 110px auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
 }
 
 .movement-planner-hint {
@@ -3578,6 +3590,11 @@ textarea:focus {
   .action-type-grid,
   .manual-roll-box.plan-roll-grid,
   .item-image-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .movement-planner-control,
+  .movement-planner-field {
     grid-template-columns: 1fr;
   }
 

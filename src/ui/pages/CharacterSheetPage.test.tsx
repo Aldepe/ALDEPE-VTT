@@ -82,6 +82,8 @@ describe('CharacterSheetPage', () => {
     expect(screen.queryByRole('button', { name: /Ready/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Search/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Cast Spell/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Move' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Anadir movimiento/i })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /Attack/i }))
     await user.click(screen.getByRole('button', { name: /Anadir al plan/i }))
     expect(screen.getByText('Roll d20 + 4')).toBeInTheDocument()

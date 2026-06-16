@@ -3,6 +3,7 @@ import { createBlankCharacter, createDefaultSpell, createDefaultSpellSlot } from
 import {
   ActivateCharacterTriggerUseCase,
   ComputeTurnPlanUseCase,
+  CreateCharacterActionUseCase,
   CreateTurnPlanUseCase,
   DeleteCharacterActionUseCase,
   ListTurnActionOptionsByCostUseCase,
@@ -19,11 +20,13 @@ import {
 } from './characterActions'
 
 describe('character action use cases', () => {
-  it('lists guided actions and weapon attacks', () => {
-    const character = createBlankCharacter('campaign', 'player')
+  it('lists configured actions and weapon attacks', () => {
+    const customAction = { ...CreateCharacterActionUseCase('player'), name: 'Arcane Device' }
+    const character = { ...createBlankCharacter('campaign', 'player'), actions: [customAction] }
     const actions = ListCharacterActionsUseCase(character)
 
-    expect(actions.some((action) => action.name === 'Use an Object')).toBe(true)
+    expect(actions.some((action) => action.name === 'Arcane Device')).toBe(true)
+    expect(actions.some((action) => action.name === 'Use an Object')).toBe(false)
     expect(actions.some((action) => action.name === 'Arma principal')).toBe(true)
   })
 
@@ -57,10 +60,15 @@ describe('character action use cases', () => {
 
   it('plans actions before computing and rejects Dash plus Attack with one Action', () => {
     const character = createBlankCharacter('campaign', 'player')
-    const dash = character.actions[0]
+    const dash = ListTurnActionOptionsByCostUseCase(character).consumeAction.find((option) => option.id === 'dash')?.action
+
+    if (!dash) {
+      throw new Error('Dash option should include a basic action')
+    }
+
     const plan = SelectTurnActionUseCase(
       SelectTurnActionUseCase(CreateTurnPlanUseCase(character), { attack: character.attacks[0] }),
-      { action: { ...dash, name: 'Dash', actionCost: 'action' } },
+      { action: dash },
     )
     const validated = ValidateTurnPlanUseCase(character, plan)
 
@@ -70,7 +78,7 @@ describe('character action use cases', () => {
   })
 
   it('deletes custom actions and removes them from the draft plan', () => {
-    const character = createBlankCharacter('campaign', 'player')
+    const character = { ...createBlankCharacter('campaign', 'player'), actions: [CreateCharacterActionUseCase('player')] }
     const action = character.actions[0]
     const plan = SelectTurnActionUseCase(CreateTurnPlanUseCase(character), { action })
 
@@ -141,7 +149,7 @@ describe('character action use cases', () => {
       ],
     }
     const options = ListTurnActionOptionsByCostUseCase(character, 15)
-    const plan = SelectTurnActionUseCase(CreateTurnPlanUseCase(character), { action: { ...character.actions[0], actionCost: 'action' } })
+    const plan = SelectTurnActionUseCase(CreateTurnPlanUseCase(character), { action: { ...CreateCharacterActionUseCase('player'), actionCost: 'action' } })
 
     expect(options.freeAction.map((option) => option.label)).toContain('Action Surge')
     expect(ValidateTurnPlanUseCase(character, plan).status).toBe('valid')
