@@ -214,10 +214,6 @@ export function DeleteMapElementUseCase<T extends { id: ID }>(elements: T[], ele
 }
 
 export function CreatePlayerAreaUseCase(area: BattleArea, member: CampaignMember): BattleArea {
-  if (!member.canDrawOnMap && !isDm(member)) {
-    throw new Error('No puedes crear areas en el mapa.')
-  }
-
   return {
     ...area,
     visibility: isDm(member) ? area.visibility : 'public',
@@ -267,6 +263,6 @@ export function ValidateBattlemapPermissionsUseCase(member: CampaignMember, ownT
     canManageMapElements: isDm(member),
     canMoveOwnToken: Boolean(ownToken && canMoveToken(member, ownToken)),
     canSetOwnInitiative: Boolean(ownToken && canSetOwnInitiative(member, ownToken)),
-    canDrawAreas: isDm(member) || member.canDrawOnMap,
+    canDrawAreas: Boolean(member),
   }
 }

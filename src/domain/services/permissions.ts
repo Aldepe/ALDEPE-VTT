@@ -98,7 +98,7 @@ export function canSetOwnInitiative(member: CampaignMember | undefined, token: T
 }
 
 export function canCreateDrawing(member?: CampaignMember): boolean {
-  return Boolean(member && (isDm(member) || member.canDrawOnMap))
+  return Boolean(member)
 }
 
 export function canEditBattleArea(member: CampaignMember | undefined, area: BattleArea): boolean {
@@ -106,7 +106,7 @@ export function canEditBattleArea(member: CampaignMember | undefined, area: Batt
     return false
   }
 
-  return isDm(member) || (member.canDrawOnMap && area.visibility === 'public' && area.createdByUserId === member.userId)
+  return isDm(member) || (area.visibility === 'public' && area.createdByUserId === member.userId)
 }
 
 export function canViewBattleArea(member: CampaignMember | undefined, area: BattleArea): boolean {

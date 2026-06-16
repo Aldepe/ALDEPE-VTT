@@ -175,14 +175,15 @@ describe('battlemap token use cases', () => {
   })
 
   it('forces player-created areas to public and scopes edits/deletes to their own areas', () => {
-    const ownArea = CreatePlayerAreaUseCase(area({ visibility: 'dm_only' }), player)
-    const updatedArea = UpdatePlayerAreaUseCase(ownArea, { name: 'Safe line', visibility: 'dm_only' }, player)
+    const tablePlayer = { ...player, canDrawOnMap: false }
+    const ownArea = CreatePlayerAreaUseCase(area({ visibility: 'dm_only' }), tablePlayer)
+    const updatedArea = UpdatePlayerAreaUseCase(ownArea, { name: 'Safe line', visibility: 'dm_only' }, tablePlayer)
     const otherArea = area({ id: 'other_area', createdByUserId: 'other_player' })
 
     expect(ownArea.visibility).toBe('public')
     expect(updatedArea).toMatchObject({ name: 'Safe line', visibility: 'public' })
-    expect(DeleteOwnPlayerAreaUseCase([ownArea], ownArea.id, player)).toEqual([])
-    expect(() => DeleteOwnPlayerAreaUseCase([otherArea], otherArea.id, player)).toThrow()
+    expect(DeleteOwnPlayerAreaUseCase([ownArea], ownArea.id, tablePlayer)).toEqual([])
+    expect(() => DeleteOwnPlayerAreaUseCase([otherArea], otherArea.id, tablePlayer)).toThrow()
   })
 
   it('summarizes battlemap permissions and measures grid distance', () => {
@@ -190,6 +191,7 @@ describe('battlemap token use cases', () => {
     const summary = ValidateBattlemapPermissionsUseCase(player, ownToken)
 
     expect(summary).toMatchObject({ canMoveOwnToken: true, canSetOwnInitiative: true, canDrawAreas: true })
+    expect(ValidateBattlemapPermissionsUseCase({ ...player, canDrawOnMap: false }, ownToken).canDrawAreas).toBe(true)
     expect(MeasureDistanceUseCase({ x: 0, y: 0 }, { x: 140, y: 0 }, 70)).toBe('10 ft')
   })
 })

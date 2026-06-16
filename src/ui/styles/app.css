@@ -2569,7 +2569,7 @@ textarea:focus {
 }
 
 .battle-layout-use {
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  grid-template-columns: 56px minmax(0, 1fr) minmax(260px, 320px);
 }
 
 .battle-mode-tabs button.is-active {
@@ -2610,7 +2610,8 @@ textarea:focus {
 
 .battle-side {
   display: grid;
-  gap: 16px;
+  align-content: start;
+  gap: 12px;
   padding: 12px;
   max-height: calc(100vh - 150px);
   overflow: auto;
@@ -2618,6 +2619,55 @@ textarea:focus {
 
 .battle-side-use {
   align-content: start;
+}
+
+.battle-side-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  border: 1px solid rgba(34, 240, 200, 0.22);
+  border-radius: 8px;
+  padding: 6px;
+  background:
+    linear-gradient(145deg, rgba(8, 14, 32, 0.95), rgba(15, 9, 34, 0.92)),
+    rgba(5, 8, 18, 0.9);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.28), inset 0 0 18px rgba(34, 240, 200, 0.06);
+}
+
+.battle-side-tabs button {
+  min-width: 0;
+  min-height: 34px;
+  border: 1px solid rgba(141, 223, 255, 0.16);
+  border-radius: 8px;
+  padding: 6px 7px;
+  overflow: hidden;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.045);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.battle-side-tabs button.is-active {
+  border-color: rgba(34, 240, 200, 0.76);
+  color: var(--cyan);
+  background: rgba(34, 240, 200, 0.13);
+  box-shadow: 0 0 16px rgba(34, 240, 200, 0.18);
+}
+
+.battle-side > section {
+  border: 1px solid rgba(141, 223, 255, 0.18);
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(34, 240, 200, 0.1), transparent 34%),
+    rgba(4, 10, 24, 0.62);
+  box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.035);
 }
 
 .battle-feedback-chip {

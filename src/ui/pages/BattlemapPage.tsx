@@ -117,12 +117,22 @@ const placementModes: Array<{ id: PlacementMode; label: string }> = [
 
 type BattlemapMode = 'use' | 'edit'
 type PlacementLayer = 'tokens' | 'areas' | 'assets' | 'dm'
+type BattleSidePanel = 'combat' | 'layers' | 'tokens' | 'areas' | 'assets' | 'map'
 
 const placementLayers: Array<{ id: PlacementLayer; label: string }> = [
   { id: 'tokens', label: 'Tokens' },
   { id: 'areas', label: 'Areas y medidas' },
   { id: 'assets', label: 'Assets tacticos' },
   { id: 'dm', label: 'Capa DM' },
+]
+
+const battleSidePanels: Array<{ id: BattleSidePanel; label: string }> = [
+  { id: 'combat', label: 'Combate' },
+  { id: 'layers', label: 'Capas' },
+  { id: 'tokens', label: 'Tokens' },
+  { id: 'areas', label: 'Areas' },
+  { id: 'assets', label: 'Assets' },
+  { id: 'map', label: 'Mapa' },
 ]
 
 function visibilityLabel(visibility: Visibility): string {
@@ -191,6 +201,7 @@ export function BattlemapPage({
   const [activeTool, setActiveTool] = useState<BattleTool>('pan')
   const [selectedAssetType, setSelectedAssetType] = useState<MapAssetType>('wall')
   const [battlemapMode, setBattlemapMode] = useState<BattlemapMode>('use')
+  const [sidePanel, setSidePanel] = useState<BattleSidePanel>('combat')
   const [placementLayer, setPlacementLayer] = useState<PlacementLayer>('tokens')
   const [color, setColor] = useState('#22f0c8')
   const [visibility, setVisibility] = useState<Visibility>('public')
@@ -246,6 +257,18 @@ export function BattlemapPage({
 
     return true
   })
+
+  function changeBattlemapMode(mode: BattlemapMode) {
+    setBattlemapMode(mode)
+
+    if (mode === 'use') {
+      setActiveTool('pan')
+      setSidePanel('combat')
+      return
+    }
+
+    setSidePanel('layers')
+  }
 
   async function createMap() {
     const nextMap = createBlankMap(campaign.id)
@@ -555,18 +578,27 @@ export function BattlemapPage({
     setSelectedTokenId(token.id)
     setSelectedAreaId(undefined)
     setSelectedAssetId(undefined)
+    if (isEditingMap) {
+      setSidePanel('tokens')
+    }
   }
 
   function selectArea(area: BattleArea) {
     setSelectedAreaId(area.id)
     setSelectedAssetId(undefined)
     setSelectedTokenId(undefined)
+    if (isEditingMap) {
+      setSidePanel('areas')
+    }
   }
 
   function selectAsset(asset: MapAsset) {
     setSelectedAssetId(asset.id)
     setSelectedAreaId(undefined)
     setSelectedTokenId(undefined)
+    if (isEditingMap) {
+      setSidePanel('assets')
+    }
   }
 
   function renderTokenLayerItem(token: Token) {
@@ -696,50 +728,21 @@ export function BattlemapPage({
           {isDm ? (
             <>
               <div className="segmented battle-mode-tabs" role="tablist" aria-label="Modo del battlemap">
-                <button className={battlemapMode === 'use' ? 'is-active' : ''} onClick={() => {
-                  setBattlemapMode('use')
-                  setActiveTool('pan')
-                }} type="button">Uso</button>
-                <button className={battlemapMode === 'edit' ? 'is-active' : ''} onClick={() => setBattlemapMode('edit')} type="button">Edicion</button>
+                <button className={battlemapMode === 'use' ? 'is-active' : ''} onClick={() => changeBattlemapMode('use')} type="button">Uso</button>
+                <button className={battlemapMode === 'edit' ? 'is-active' : ''} onClick={() => changeBattlemapMode('edit')} type="button">Edicion</button>
               </div>
-              {isEditingMap ? (
-                <label className="field inline-field">
-                  <span>Capa</span>
-                  <SelectInput onChange={(event) => selectPlacementLayer(event.target.value as PlacementLayer)} value={placementLayer}>
-                    {placementLayers.map((layer) => (
-                      <option key={layer.id} value={layer.id}>
-                        {layer.label}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </label>
-              ) : null}
               <button className="ghost-button" onClick={createMap} type="button">Nuevo mapa</button>
               {map.isActive ? (
                 <button className="ghost-button" onClick={() => void setMapHidden(map)} type="button">Ocultar a players</button>
               ) : (
                 <button className="ghost-button" onClick={() => setMapActive(map)} type="button">Mostrar a players</button>
               )}
-              {isEditingMap ? (
-                <>
-                  <button className="ghost-button danger-button" onClick={() => void deleteCurrentMap()} type="button">
-                    <Trash2 size={16} aria-hidden="true" />
-                    Borrar mapa
-                  </button>
-                  <label className="upload-row compact-upload">
-                    <ImagePlus size={18} aria-hidden="true" />
-                    <span>Fondo</span>
-                    <input accept="image/*" onChange={uploadMapBackground} type="file" />
-                  </label>
-                </>
-              ) : null}
             </>
           ) : null}
         </div>
       </header>
 
       <div className={clsx('battle-layout', !isEditingMap && 'battle-layout-use')}>
-        {isEditingMap ? (
         <div className="battle-toolbar" aria-label="Herramientas de mapa">
           {availableTools.map((tool) => {
             const Icon = tool.icon
@@ -747,7 +750,12 @@ export function BattlemapPage({
               <button
                 className={clsx('icon-button', activeTool === tool.id && 'is-active')}
                 key={tool.id}
-                onClick={() => setActiveTool(tool.id)}
+                onClick={() => {
+                  setActiveTool(tool.id)
+                  if (isEditingMap && (tool.id === 'measure' || tool.id === 'circle' || tool.id === 'cone' || tool.id === 'square' || tool.id === 'line' || tool.id === 'erase')) {
+                    setSidePanel('areas')
+                  }
+                }}
                 title={tool.label}
                 type="button"
               >
@@ -782,7 +790,6 @@ export function BattlemapPage({
           ))}
           <span className="measure-readout">{measureLabel}</span>
         </div>
-        ) : null}
 
         <BattlemapCanvas
           activeTool={activeTool}
@@ -811,11 +818,17 @@ export function BattlemapPage({
             setSelectedAreaId(areaId)
             setSelectedAssetId(undefined)
             setSelectedTokenId(undefined)
+            if (areaId && isEditingMap) {
+              setSidePanel('areas')
+            }
           }}
           onSelectToken={(tokenId) => {
             setSelectedTokenId(tokenId)
             setSelectedAreaId(undefined)
             setSelectedAssetId(undefined)
+            if (tokenId && isEditingMap) {
+              setSidePanel('tokens')
+            }
           }}
           onUpdateBattleArea={(area) => void onSaveBattleArea(UpdatePlayerAreaUseCase(area, {}, viewerMember))}
           placementMode={placementMode}
@@ -827,11 +840,35 @@ export function BattlemapPage({
 
         <aside className={clsx('battle-side scroll-panel', !isEditingMap && 'battle-side-use')}>
           {isEditingMap ? (
+            <div className="battle-side-tabs" role="tablist" aria-label="Panel del battlemap">
+              {battleSidePanels.map((panel) => (
+                <button
+                  className={sidePanel === panel.id ? 'is-active' : ''}
+                  key={panel.id}
+                  onClick={() => setSidePanel(panel.id)}
+                  type="button"
+                >
+                  {panel.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {isEditingMap && sidePanel === 'map' ? (
             <section className="map-settings-panel" aria-label="Grid del mapa">
               <div className="panel-heading">
                 <h3>Grid</h3>
                 <span>{gridColumns} x {gridRows}</span>
               </div>
+              <Field label="Capa activa">
+                <SelectInput onChange={(event) => selectPlacementLayer(event.target.value as PlacementLayer)} value={placementLayer}>
+                  {placementLayers.map((layer) => (
+                    <option key={layer.id} value={layer.id}>
+                      {layer.label}
+                    </option>
+                  ))}
+                </SelectInput>
+              </Field>
               <div className="form-grid compact">
                 <Field label="Cuadrados horizontal">
                   <NumberInput min={1} onChange={(event) => void updateGridColumns(Number(event.target.value))} value={gridColumns} />
@@ -843,10 +880,19 @@ export function BattlemapPage({
                   <NumberInput min={16} onChange={(event) => void updateGridSize(Number(event.target.value))} value={map.gridSize} />
                 </Field>
               </div>
+              <label className="upload-row compact-upload">
+                <ImagePlus size={18} aria-hidden="true" />
+                <span>Fondo del mapa</span>
+                <input accept="image/*" onChange={uploadMapBackground} type="file" />
+              </label>
+              <button className="ghost-button danger-button" onClick={() => void deleteCurrentMap()} type="button">
+                <Trash2 size={16} aria-hidden="true" />
+                Borrar mapa
+              </button>
             </section>
           ) : null}
 
-          {isEditingMap ? (
+          {isEditingMap && sidePanel === 'layers' ? (
             <section className="layer-panel" aria-label="Capas del battlemap">
               <div className="panel-heading">
                 <h3><Layers size={17} aria-hidden="true" /> Capas</h3>
@@ -885,7 +931,7 @@ export function BattlemapPage({
             </section>
           ) : null}
 
-          {!isDm && ownToken ? (
+          {(!isEditingMap || sidePanel === 'combat') && !isDm && ownToken ? (
             <section className="player-initiative-panel">
               <div className="panel-heading">
                 <h3>Mi iniciativa</h3>
@@ -910,7 +956,7 @@ export function BattlemapPage({
             </section>
           ) : null}
 
-          {isEditingMap ? (
+          {isEditingMap && sidePanel === 'areas' ? (
           <>
           <section>
             <div className="panel-heading">
@@ -1030,7 +1076,11 @@ export function BattlemapPage({
               </fieldset>
             </section>
           ) : null}
+          </>
+          ) : null}
 
+          {isEditingMap && sidePanel === 'assets' ? (
+          <>
           <section>
             <div className="panel-heading">
               <h3>Assets tacticos</h3>
@@ -1116,7 +1166,11 @@ export function BattlemapPage({
               </fieldset>
             </section>
           ) : null}
+          </>
+          ) : null}
 
+          {isEditingMap && sidePanel === 'tokens' ? (
+          <>
           <section>
             <div className="panel-heading">
               <h3>Tokens</h3>
@@ -1319,6 +1373,7 @@ export function BattlemapPage({
           </>
           ) : null}
 
+          {(!isEditingMap || sidePanel === 'combat') ? (
           <section className="turn-panel">
             <div className="panel-heading">
               <h3>Turn order</h3>
@@ -1348,6 +1403,7 @@ export function BattlemapPage({
               </div>
             ) : null}
           </section>
+          ) : null}
         </aside>
       </div>
     </section>

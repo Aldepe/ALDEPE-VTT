@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { CampaignMember } from '@domain/entities/common'
-import { canDeleteMap, canEditCharacter, canEditInventoryItem, canViewLore, canViewNote, canViewQuest, canViewSecret } from './permissions'
+import { canCreateDrawing, canDeleteMap, canEditBattleArea, canEditCharacter, canEditInventoryItem, canViewLore, canViewNote, canViewQuest, canViewSecret } from './permissions'
 import { createBlankCharacter, createBlankLoreEntry } from '@application/use-cases/workspaceFactories'
+import { CreateBattleAreaUseCase } from '@application/use-cases/battleAreas'
 
 const dm: CampaignMember = {
   id: 'member_dm',
@@ -97,5 +98,26 @@ describe('permissions', () => {
     expect(canViewLore(player, lore)).toBe(true)
     expect(canViewLore(otherPlayer, lore)).toBe(false)
     expect(canViewLore(player, { ...lore, visibleToPlayerIds: [] })).toBe(true)
+  })
+
+  it('lets every campaign member create measurements and edit their own public areas', () => {
+    const tablePlayer = { ...player, canDrawOnMap: false }
+    const ownArea = {
+      ...CreateBattleAreaUseCase({
+        campaignId: 'campaign',
+        mapId: 'map',
+        userId: tablePlayer.userId,
+        type: 'line',
+        start: { x: 0, y: 0 },
+        end: { x: 70, y: 0 },
+        color: '#22f0c8',
+        visibility: 'public',
+        placementMode: 'free',
+      }),
+      createdByUserId: tablePlayer.userId,
+    }
+
+    expect(canCreateDrawing(tablePlayer)).toBe(true)
+    expect(canEditBattleArea(tablePlayer, ownArea)).toBe(true)
   })
 })
