@@ -3780,14 +3780,50 @@ textarea:focus {
 }
 
 .character-admin-card {
+  box-sizing: border-box;
   display: grid;
   gap: 0.65rem;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
   padding: 0.75rem;
+  overflow: hidden;
+}
+
+.character-admin-card * {
+  box-sizing: border-box;
 }
 
 .character-admin-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+  width: 100%;
+}
+
+.character-admin-card .field,
+.character-admin-card select,
+.character-admin-actions .ghost-button {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+.character-admin-card select {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.character-admin-actions .ghost-button {
+  gap: 0.35rem;
+  padding-inline: 0.42rem;
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+.character-admin-actions .ghost-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sheet-visibility-toggle {
@@ -3872,11 +3908,6 @@ textarea:focus {
   }
 }
 
-.character-admin-card {
-  min-width: 0;
-}
-
-.character-admin-card select,
 .session-card .ghost-button {
   min-width: 0;
 }
