@@ -430,15 +430,6 @@ export function BattlemapCanvas({
       mapGradient.addColorStop(1, '#11182b')
       context.fillStyle = mapGradient
       context.fillRect(0, 0, map.width, map.height)
-
-      context.strokeStyle = 'rgba(34, 240, 200, 0.08)'
-      context.lineWidth = 3
-      for (let x = -map.height; x < map.width; x += map.gridSize * 4) {
-        context.beginPath()
-        context.moveTo(x, 0)
-        context.lineTo(x + map.height, map.height)
-        context.stroke()
-      }
     }
 
     drawGrid(context, map)
