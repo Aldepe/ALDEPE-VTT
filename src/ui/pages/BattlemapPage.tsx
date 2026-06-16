@@ -217,7 +217,20 @@ export function BattlemapPage({
   const [initiativeRoll, setInitiativeRoll] = useState(10)
   const [battleFeedback, setBattleFeedback] = useState('Battlemap listo.')
 
-  const mapTokens = useMemo(() => tokens.filter((token) => token.mapId === map?.id).map(NormalizeTokenUseCase), [map?.id, tokens])
+  const mapTokens = useMemo(
+    () => tokens
+      .filter((token) => token.mapId === map?.id)
+      .map(NormalizeTokenUseCase)
+      .map((token) => {
+        if (token.kind !== 'player' || token.image.url) {
+          return token
+        }
+
+        const character = characters.find((candidate) => candidate.id === (token.ownerCharacterId ?? token.characterId))
+        return character?.portrait.url ? { ...token, image: { ...character.portrait, alt: character.portrait.alt || token.name } } : token
+      }),
+    [characters, map?.id, tokens],
+  )
   const mapDrawings = useMemo(() => drawings.filter((drawing) => drawing.mapId === map?.id), [drawings, map?.id])
   const mapAreas = useMemo(() => battleAreas.filter((area) => area.mapId === map?.id), [battleAreas, map?.id])
   const assets = useMemo(() => mapAssets.filter((asset) => asset.mapId === map?.id), [map?.id, mapAssets])

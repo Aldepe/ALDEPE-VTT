@@ -98,7 +98,7 @@ function area(patch: Partial<BattleArea> = {}): BattleArea {
 
 describe('battlemap token use cases', () => {
   it('lets the DM create, update, duplicate, hide and delete monster tokens', () => {
-    const monster = CreateMonsterTokenUseCase('map', dm, { name: 'Gloom sentinel' })
+    const monster = CreateMonsterTokenUseCase('map', dm, { name: 'Gloom sentinel', image: { url: 'data:image/png;base64,monster', alt: 'Gloom sentinel' } })
     const updated = UpdateMonsterTokenUseCase(monster, { name: 'Gloom sentinel elite' }, dm)
     const hidden = SetTokenVisibilityUseCase(updated, 'dm_only', dm)
     const duplicate = DuplicateTokenUseCase(hidden, dm)
@@ -113,13 +113,20 @@ describe('battlemap token use cases', () => {
     const result = DeleteMonsterTokenUseCase([hidden, duplicate], turnOrder, hidden.id, dm)
 
     expect(hidden.visibility).toBe('dm_only')
+    expect(hidden.image).toMatchObject({ url: 'data:image/png;base64,monster', alt: 'Gloom sentinel' })
     expect(duplicate.id).not.toBe(hidden.id)
     expect(result.tokens).toEqual([duplicate])
     expect(result.turnOrder.entries).toHaveLength(0)
   })
 
   it('lets the DM create player tokens from character sheets', () => {
-    const character = { ...createBlankCharacter('campaign', 'player'), id: 'character_player', name: 'Lira', ownerUserId: 'player' }
+    const character = {
+      ...createBlankCharacter('campaign', 'player'),
+      id: 'character_player',
+      name: 'Lira',
+      ownerUserId: 'player',
+      portrait: { url: 'data:image/png;base64,player', alt: 'Lira portrait' },
+    }
     const playerToken = CreatePlayerTokenUseCase('map', character, dm)
 
     expect(playerToken).toMatchObject({
@@ -133,6 +140,7 @@ describe('battlemap token use cases', () => {
         armorClass: character.armorClass,
       },
     })
+    expect(playerToken.image).toMatchObject({ url: 'data:image/png;base64,player', alt: 'Lira portrait' })
     expect(() => CreatePlayerTokenUseCase('map', character, player)).toThrow('Solo el DM')
   })
 

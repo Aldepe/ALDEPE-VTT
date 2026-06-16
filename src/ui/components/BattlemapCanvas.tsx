@@ -60,6 +60,11 @@ type Interaction =
   | { kind: 'drag-area'; area: BattleArea; offset: Point }
   | { kind: 'drag-token'; token: Token; offset: Point }
 
+type TokenImageCacheEntry =
+  | { status: 'loading'; image: HTMLImageElement; src: string }
+  | { status: 'loaded'; image: HTMLImageElement; src: string }
+  | { status: 'error'; src: string }
+
 const drawingTools: DrawingShape[] = ['circle', 'cone', 'square', 'line']
 const assetTools = mapAssetDefinitions.map((definition) => definition.type)
 
@@ -220,7 +225,42 @@ function drawAsset(context: CanvasRenderingContext2D, asset: MapAsset) {
   context.restore()
 }
 
-function drawToken(context: CanvasRenderingContext2D, token: Token, gridSize: number, selected: boolean) {
+function drawTokenImage(context: CanvasRenderingContext2D, image: HTMLImageElement, token: Token, radius: number) {
+  const imageWidth = image.naturalWidth || image.width
+  const imageHeight = image.naturalHeight || image.height
+  if (!imageWidth || !imageHeight) {
+    return
+  }
+
+  const diameter = radius * 2
+  const scale = Math.max(diameter / imageWidth, diameter / imageHeight)
+  const drawWidth = imageWidth * scale
+  const drawHeight = imageHeight * scale
+  const drawX = token.x - drawWidth / 2
+  const drawY = token.y - drawHeight / 2
+
+  context.save()
+  context.beginPath()
+  context.arc(token.x, token.y, radius, 0, Math.PI * 2)
+  context.clip()
+  context.drawImage(image, drawX, drawY, drawWidth, drawHeight)
+
+  const sheen = context.createRadialGradient(token.x - radius * 0.35, token.y - radius * 0.45, 0, token.x, token.y, radius)
+  sheen.addColorStop(0, 'rgba(255, 255, 255, 0.22)')
+  sheen.addColorStop(0.58, 'rgba(255, 255, 255, 0.02)')
+  sheen.addColorStop(1, 'rgba(2, 6, 18, 0.34)')
+  context.fillStyle = sheen
+  context.fillRect(token.x - radius, token.y - radius, diameter, diameter)
+  context.restore()
+}
+
+function drawToken(
+  context: CanvasRenderingContext2D,
+  token: Token,
+  gridSize: number,
+  selected: boolean,
+  tokenImage?: HTMLImageElement,
+) {
   const radius = Math.max(12, ((gridSize * token.size) / 2 - 6) * token.scale)
   const isPrivate = isDmOnlyVisibility(token.visibility)
   const hpRatio = token.stats.maxHp > 0 ? Math.max(0, Math.min(1, token.stats.currentHp / token.stats.maxHp)) : 0
@@ -245,6 +285,9 @@ function drawToken(context: CanvasRenderingContext2D, token: Token, gridSize: nu
   context.shadowColor = context.fillStyle
   context.shadowBlur = selected ? 24 : 10
   context.fill()
+  if (tokenImage) {
+    drawTokenImage(context, tokenImage, token, radius)
+  }
   context.shadowBlur = 0
   context.setLineDash(isPrivate ? [10, 5] : [])
   context.strokeStyle = selected ? '#ffffff' : token.borderColor || 'rgba(255,255,255,0.78)'
@@ -263,13 +306,15 @@ function drawToken(context: CanvasRenderingContext2D, token: Token, gridSize: nu
   context.font = '800 20px Inter, system-ui'
   context.textAlign = 'center'
   context.textBaseline = 'middle'
-  const initials = token.name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-  context.fillText(initials, token.x, token.y)
+  if (!tokenImage) {
+    const initials = token.name
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase()
+    context.fillText(initials, token.x, token.y)
+  }
   if (isPrivate) {
     context.fillStyle = '#ffedf7'
     context.font = '800 11px Inter, system-ui'
@@ -315,11 +360,13 @@ export function BattlemapCanvas({
   void drawings
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const backgroundRef = useRef<HTMLImageElement | null>(null)
+  const tokenImageCacheRef = useRef<Map<string, TokenImageCacheEntry>>(new Map())
   const moveFrameRef = useRef<number | undefined>(undefined)
   const pendingTokenRef = useRef<Token | null>(null)
   const areaFrameRef = useRef<number | undefined>(undefined)
   const pendingAreaRef = useRef<BattleArea | null>(null)
   const focusedNonceRef = useRef<number | undefined>(undefined)
+  const [, setTokenImageVersion] = useState(0)
   const [viewport, setViewport] = useState({ x: 40, y: 40, scale: 0.55 })
   const [interaction, setInteraction] = useState<Interaction>({ kind: 'none' })
 
@@ -345,6 +392,39 @@ export function BattlemapCanvas({
       backgroundRef.current = image
     }
   }, [map.background.url])
+
+  useEffect(() => {
+    const cache = tokenImageCacheRef.current
+    const visibleImageUrls = new Set(
+      visibleTokens
+        .map((token) => token.image.url)
+        .filter((url): url is string => Boolean(url)),
+    )
+
+    Array.from(cache.keys()).forEach((url) => {
+      if (!visibleImageUrls.has(url)) {
+        cache.delete(url)
+      }
+    })
+
+    visibleImageUrls.forEach((url) => {
+      if (cache.has(url)) {
+        return
+      }
+
+      const image = new Image()
+      cache.set(url, { status: 'loading', image, src: url })
+      image.onload = () => {
+        cache.set(url, { status: 'loaded', image, src: url })
+        setTokenImageVersion((version) => version + 1)
+      }
+      image.onerror = () => {
+        cache.set(url, { status: 'error', src: url })
+        setTokenImageVersion((version) => version + 1)
+      }
+      image.src = url
+    })
+  }, [visibleTokens])
 
   useEffect(() => {
     if (!focusPoint || focusedNonceRef.current === focusPoint.nonce) {
@@ -435,7 +515,11 @@ export function BattlemapCanvas({
     drawGrid(context, map)
     visibleBattleAreas.forEach((area) => drawBattleArea(context, area, area.id === selectedAreaId))
     visibleAssets.forEach((asset) => drawAsset(context, asset))
-    visibleTokens.forEach((token) => drawToken(context, token, map.gridSize, token.id === selectedTokenId))
+    visibleTokens.forEach((token) => {
+      const imageEntry = token.image.url ? tokenImageCacheRef.current.get(token.image.url) : undefined
+      const tokenImage = imageEntry?.status === 'loaded' ? imageEntry.image : undefined
+      drawToken(context, token, map.gridSize, token.id === selectedTokenId, tokenImage)
+    })
 
     if (interaction.kind === 'draw') {
       const preview = CreateBattleAreaUseCase({
