@@ -119,9 +119,9 @@ export function LorePage({ campaignId, entries, isDm, onDelete, onSave, viewerMe
     <section className="page-grid lore-page" aria-labelledby="lore-title">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Wiki de campana</p>
+          <p className="eyebrow">Wiki de campaña</p>
           <h2 id="lore-title">Lore</h2>
-          <p>Entradas publicas, secretos de DM y vinculos internos.</p>
+          <p>Entradas públicas, secretos de DM y vínculos internos.</p>
         </div>
         <div className="toolbar-line">
           <label className="search-box">
@@ -200,7 +200,7 @@ export function LorePage({ campaignId, entries, isDm, onDelete, onSave, viewerMe
             </div>
           </>
         ) : (
-          <EmptyState icon={<BookMarked size={32} />} message="Crea una entrada para verla aqui." title="Detalle vacio" />
+          <EmptyState icon={<BookMarked size={32} />} message="Crea una entrada para verla aquí." title="Detalle vacío" />
         )}
       </article>
 

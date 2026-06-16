@@ -27,7 +27,7 @@ export interface CampaignWorkspace {
 }
 
 export interface CampaignRepository extends MapRepository, NoteRepository {
-  loadWorkspace(userId: ID, preferredRole: CampaignMember['role']): Promise<CampaignWorkspace>
+  loadWorkspace(userId: ID, preferredRole: CampaignMember['role'], displayName?: string): Promise<CampaignWorkspace>
   saveCampaignMember(member: CampaignMember): Promise<CampaignMember>
   saveCharacter(character: Character): Promise<Character>
   saveSession(session: TimelineSession): Promise<TimelineSession>

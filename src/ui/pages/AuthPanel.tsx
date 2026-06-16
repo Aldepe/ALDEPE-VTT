@@ -16,16 +16,21 @@ interface AuthPanelProps {
 
 export function AuthPanel({ error, loadStatus, mode, onAuth }: AuthPanelProps) {
   const [authMode, setAuthMode] = useState<'sign-in' | 'sign-up'>('sign-in')
-  const [email, setEmail] = useState('dm@example.local')
-  const [password, setPassword] = useState('demo-password')
-  const [displayName, setDisplayName] = useState('DM Demo')
+  const [email, setEmail] = useState(mode === 'local-demo' ? 'dm@example.local' : '')
+  const [password, setPassword] = useState(mode === 'local-demo' ? 'demo-password' : '')
+  const [displayName, setDisplayName] = useState('')
   const [preferredRole, setPreferredRole] = useState<CampaignRole>('dm')
   const isLoading = loadStatus === 'loading'
   const branding = LoadBrandingAssetsUseCase()
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    await onAuth({ email, password, displayName, preferredRole }, authMode)
+    const credentials =
+      authMode === 'sign-in'
+        ? { email, password }
+        : { email, password, displayName: displayName.trim(), preferredRole }
+
+    await onAuth(credentials, authMode)
   }
 
   async function enterDemo(role: CampaignRole) {
@@ -55,21 +60,21 @@ export function AuthPanel({ error, loadStatus, mode, onAuth }: AuthPanelProps) {
         </div>
 
         <form className="auth-form" onSubmit={submit}>
-          <div className="segmented" role="group" aria-label="Modo de autenticacion">
+          <div className="segmented" role="group" aria-label="Modo de autenticación">
             <button className={authMode === 'sign-in' ? 'is-active' : ''} onClick={() => setAuthMode('sign-in')} type="button">
               <LockKeyhole size={17} aria-hidden="true" />
-              Login
+              Iniciar sesión
             </button>
             <button className={authMode === 'sign-up' ? 'is-active' : ''} onClick={() => setAuthMode('sign-up')} type="button">
               <UserPlus size={17} aria-hidden="true" />
-              Signup
+              Crear cuenta
             </button>
           </div>
 
           <Field label="Email">
             <TextInput autoComplete="email" onChange={(event) => setEmail(event.target.value)} required type="email" value={email} />
           </Field>
-          <Field label="Password">
+          <Field label="Contraseña">
             <TextInput
               autoComplete={authMode === 'sign-in' ? 'current-password' : 'new-password'}
               minLength={8}
@@ -79,15 +84,19 @@ export function AuthPanel({ error, loadStatus, mode, onAuth }: AuthPanelProps) {
               value={password}
             />
           </Field>
-          <Field label="Nombre visible">
-            <TextInput onChange={(event) => setDisplayName(event.target.value)} value={displayName} />
-          </Field>
-          <Field label="Rol">
-            <SelectInput onChange={(event) => setPreferredRole(event.target.value as CampaignRole)} value={preferredRole}>
-              <option value="dm">DM</option>
-              <option value="player">Player</option>
-            </SelectInput>
-          </Field>
+          {authMode === 'sign-up' ? (
+            <>
+              <Field label="Nombre visible">
+                <TextInput autoComplete="name" onChange={(event) => setDisplayName(event.target.value)} required value={displayName} />
+              </Field>
+              <Field label="Rol inicial">
+                <SelectInput onChange={(event) => setPreferredRole(event.target.value as CampaignRole)} value={preferredRole}>
+                  <option value="dm">DM</option>
+                  <option value="player">Jugador</option>
+                </SelectInput>
+              </Field>
+            </>
+          ) : null}
 
           {error ? <div className="app-alert" role="alert">{error}</div> : null}
 

@@ -101,7 +101,7 @@ export function TimelinePage({
   }
 
   async function confirmDeleteQuest(questId: string) {
-    if (window.confirm('Borrar esta mision?')) {
+    if (window.confirm('¿Borrar esta misión?')) {
       await onDeleteQuest(questId)
     }
   }
@@ -146,12 +146,12 @@ export function TimelinePage({
                     onClick={() => setSessionDraft(session)}
                     type="button"
                   >
-                    <img alt={`Foto de grupo de ${session.title || `sesion ${session.sessionNumber}`}`} src={session.sessionImageUrl} />
+                    <img alt={`Foto de grupo de ${session.title || `sesión ${session.sessionNumber}`}`} src={session.sessionImageUrl} />
                   </button>
                 ) : null}
                 <small>{session.playedAt}</small>
                 <h3>
-                  #{session.sessionNumber} {session.title || 'Sesion sin titulo'}
+                  #{session.sessionNumber} {session.title || 'Sesión sin título'}
                 </h3>
                 <p>{session.summary}</p>
                 <div className="note-strip">{session.visibleNotes}</div>
@@ -160,7 +160,7 @@ export function TimelinePage({
                     <button className="ghost-button" onClick={() => setSessionDraft(session)} type="button">
                       Editar
                     </button>
-                    <button className="icon-button danger" onClick={() => confirmDeleteSession(session.id)} title="Borrar sesion" type="button">
+                    <button className="icon-button danger" onClick={() => confirmDeleteSession(session.id)} title="Borrar sesión" type="button">
                       <Trash2 size={16} aria-hidden="true" />
                     </button>
                   </div>
@@ -178,7 +178,7 @@ export function TimelinePage({
 
         {isDm ? (
           <form className="editor-panel" onSubmit={submitSession}>
-            <h3>Entrada de sesion</h3>
+            <h3>Entrada de sesión</h3>
             <div className="form-grid compact">
               <Field label="Numero">
                 <NumberInput
@@ -203,7 +203,7 @@ export function TimelinePage({
             <div className="session-photo-editor">
               {sessionDraft.sessionImageUrl ? (
                 <div className={sessionDraft.sessionImageHoloEnabled ? 'session-memory holo-memory' : 'session-memory'}>
-                  <img alt={`Preview de ${sessionDraft.title || 'sesion'}`} src={sessionDraft.sessionImageUrl} />
+                  <img alt={`Preview de ${sessionDraft.title || 'sesión'}`} src={sessionDraft.sessionImageUrl} />
                 </div>
               ) : null}
               <label className="upload-row">
@@ -221,7 +221,7 @@ export function TimelinePage({
               </label>
             </div>
             <button className="primary-button" type="submit">
-              Guardar sesion
+              Guardar sesión
             </button>
           </form>
         ) : null}
@@ -230,7 +230,7 @@ export function TimelinePage({
       <aside className={isDm ? 'quest-panel' : 'quest-panel player-mission-panel'} aria-label="Misiones">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">{isDm ? 'Misiones' : 'Bitacora arcana'}</p>
+            <p className="eyebrow">{isDm ? 'Misiones' : 'Bitácora arcana'}</p>
             <h3>{isDm ? 'Misiones' : 'Objetivos activos'}</h3>
           </div>
           <span>{visibleQuests.length}</span>
@@ -240,7 +240,7 @@ export function TimelinePage({
             <article className={`quest-card status-${quest.status}`} key={quest.id}>
               <div className="card-title-row">
                 <div className="mission-title-cluster">
-                  <LineIcon label={`Icono de ${quest.title || 'mision'}`} name="mission" />
+                  <LineIcon label={`Icono de ${quest.title || 'misión'}`} name="mission" />
                   <h4>{quest.title || 'Mision sin titulo'}</h4>
                 </div>
                 <span>{questStatusLabel(quest.status)}</span>
@@ -263,7 +263,7 @@ export function TimelinePage({
                   <button className="ghost-button" onClick={() => setQuestDraft(quest)} type="button">
                     Editar
                   </button>
-                  <button className="icon-button danger" onClick={() => confirmDeleteQuest(quest.id)} title="Borrar mision" type="button">
+                  <button className="icon-button danger" onClick={() => confirmDeleteQuest(quest.id)} title="Borrar misión" type="button">
                     <Trash2 size={16} aria-hidden="true" />
                   </button>
                 </div>
@@ -272,8 +272,8 @@ export function TimelinePage({
           )) : (
             <EmptyState
               icon={<LineIcon label="Sin misiones" name="mission" />}
-              message={isDm ? 'Crea una mision para verla aqui.' : 'El DM aun no ha revelado objetivos para la party.'}
-              title={isDm ? 'Sin misiones' : 'Bitacora en calma'}
+              message={isDm ? 'Crea una misión para verla aquí.' : 'El DM aún no ha revelado objetivos para la party.'}
+              title={isDm ? 'Sin misiones' : 'Bitácora en calma'}
             />
           )}
         </div>
@@ -306,7 +306,7 @@ export function TimelinePage({
               <TextArea onChange={(event) => setQuestDraft({ ...questDraft, secret: event.target.value })} value={questDraft.secret} />
             </Field>
             <button className="primary-button" type="submit">
-              Guardar mision
+              Guardar misión
             </button>
           </form>
         ) : null}

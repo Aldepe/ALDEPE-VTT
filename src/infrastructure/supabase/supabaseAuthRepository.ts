@@ -31,7 +31,7 @@ export class SupabaseAuthRepository implements AuthRepository {
     })
 
     if (error || !data.user?.email) {
-      throw new Error(error?.message ?? 'No se pudo iniciar sesion')
+      throw new Error(error?.message ?? 'No se pudo iniciar sesión')
     }
 
     return {

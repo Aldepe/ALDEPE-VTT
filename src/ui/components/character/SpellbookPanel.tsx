@@ -275,7 +275,7 @@ export function SpellbookPanel({ canEdit, character, onChange, saveStatus }: Spe
             onChange={(event) => setCategoryFilter(event.target.value as 'all' | SpellEffectCategory)}
             value={categoryFilter}
           >
-            <option value="all">Todas las categorias</option>
+            <option value="all">Todas las categorías</option>
             {Object.entries(spellEffectCategoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </SelectInput>
           <label className="check-row spell-prepared-filter">

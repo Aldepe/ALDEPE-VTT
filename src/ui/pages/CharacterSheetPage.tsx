@@ -902,7 +902,7 @@ export function CharacterSheetPage({
                         </Field>
                       </div>
                     ) : (
-                      <p className="muted-line">Sin spellcasting: se ocultan Libro, slots, Cast Spell y campos magicos vacios.</p>
+                      <p className="muted-line">Sin spellcasting: se ocultan Libro, slots, Cast Spell y campos mágicos vacíos.</p>
                     )}
                   </div>
                 </details>

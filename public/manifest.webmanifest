@@ -1,16 +1,16 @@
 {
   "name": "Aldepe VTT",
   "short_name": "Aldepe VTT",
-  "description": "Mesa virtual bioluminiscente para campanas de D&D 5e 2024.",
+  "description": "Mesa virtual bioluminiscente para campañas de D&D 5e 2024.",
   "icons": [
     {
-      "src": "/assets/branding/aldepe-vtt-icon.png",
+      "src": "assets/branding/aldepe-vtt-icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#090d18",
   "theme_color": "#22f0c8"

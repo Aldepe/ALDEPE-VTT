@@ -212,7 +212,7 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
     if (option.mode) {
       setSelectionMode(option.mode)
       setSelectionCost(option.cost)
-      setFeedback(`Elige una opcion de ${option.label}.`)
+      setFeedback(`Elige una opción de ${option.label}.`)
       return
     }
 
@@ -485,7 +485,7 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
                   <div className="empty-state compact-empty action-empty-state">
                     <Sparkles size={22} aria-hidden="true" />
                     <strong>Sin opciones reales</strong>
-                    <p>El DM puede configurar una opcion para esta categoria.</p>
+                    <p>El DM puede configurar una opción para esta categoría.</p>
                   </div>
                 )}
               </div>
@@ -737,10 +737,10 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
                       </SelectInput>
                     </label>
                     <label>
-                      <span>Dano/curacion</span>
+                      <span>Daño/curación</span>
                       <NumberInput min={0} onChange={(event) => updatePlanItem(item.id, { manualDamageRoll: Number(event.target.value) })} value={item.manualDamageRoll ?? ''} />
                     </label>
-                    <span>Total dano: <strong>{damageTotal ?? '-'}</strong></span>
+                    <span>Total daño: <strong>{damageTotal ?? '-'}</strong></span>
                   </div>
                 ) : null}
               </article>
@@ -748,7 +748,7 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
           }) : (
             <div className="empty-state compact-empty">
               <Sparkles size={28} />
-              <strong>Plan vacio</strong>
+              <strong>Plan vacío</strong>
               <p>Elige una accion arriba. Nada se gasta hasta computar.</p>
             </div>
           )}

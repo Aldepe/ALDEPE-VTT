@@ -77,20 +77,32 @@ export default function App() {
     visibleCharacters.find((character) => character.ownerUserId === viewerMember?.userId) ??
     visibleCharacters[0]
 
+  useEffect(() => {
+    document.body.style.setProperty('--app-background-layer', `url("${branding.backgroundPath}") center / cover fixed`)
+
+    return () => {
+      document.body.style.removeProperty('--app-background-layer')
+    }
+  }, [branding.backgroundPath])
+
   const loadWorkspace = useCallback(
     async (nextSession: AuthSession) => {
       setLoadStatus('loading')
       setError(null)
 
       try {
-        const nextWorkspace = await repositories.campaign.loadWorkspace(nextSession.profile.id, nextSession.preferredRole)
+        const nextWorkspace = await repositories.campaign.loadWorkspace(
+          nextSession.profile.id,
+          nextSession.preferredRole,
+          nextSession.profile.displayName,
+        )
         setWorkspace(nextWorkspace)
         const member = getVisibleMember(nextWorkspace, nextSession)
         const firstVisibleCharacter = nextWorkspace.characters.find((character) => canViewCharacter(member, character))
         setSelectedCharacterId(member?.characterId ?? firstVisibleCharacter?.id)
         setLoadStatus('ready')
       } catch (workspaceError) {
-        setError(workspaceError instanceof Error ? workspaceError.message : 'No se pudo cargar la campana')
+        setError(workspaceError instanceof Error ? workspaceError.message : 'No se pudo cargar la campaña')
         setLoadStatus('error')
       }
     },
@@ -117,7 +129,7 @@ export default function App() {
       })
       .catch((sessionError) => {
         if (mounted) {
-          setError(sessionError instanceof Error ? sessionError.message : 'No se pudo leer la sesion')
+          setError(sessionError instanceof Error ? sessionError.message : 'No se pudo leer la sesión')
           setLoadStatus('error')
         }
       })

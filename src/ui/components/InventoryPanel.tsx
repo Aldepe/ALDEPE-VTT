@@ -252,7 +252,7 @@ export function InventoryPanel({
               </button>
             ))
           ) : (
-            <EmptyState icon={<Archive size={30} />} message="No hay objetos en esta vista." title="Inventario vacio" />
+            <EmptyState icon={<Archive size={30} />} message="No hay objetos en esta vista." title="Inventario vacío" />
           )}
         </section>
 

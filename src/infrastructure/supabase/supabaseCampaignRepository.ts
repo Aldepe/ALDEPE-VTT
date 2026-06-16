@@ -8,15 +8,8 @@ import type { CampaignNote } from '@domain/entities/note'
 import type { Quest, TimelineSession } from '@domain/entities/timeline'
 import type { CampaignRepository, CampaignWorkspace } from '@domain/repositories/campaignRepository'
 import { NormalizeTokenUseCase } from '@application/use-cases/battlemapTokens'
-import { hydrateCharacterDefaults } from '@application/use-cases/workspaceFactories'
-
-function unwrap<T>(value: T | null, message: string): T {
-  if (!value) {
-    throw new Error(message)
-  }
-
-  return value
-}
+import { createBlankMap, hydrateCharacterDefaults } from '@application/use-cases/workspaceFactories'
+import { createId } from '@shared/utils/id'
 
 export class SupabaseCampaignRepository implements CampaignRepository {
   private readonly client: SupabaseClient
@@ -25,10 +18,25 @@ export class SupabaseCampaignRepository implements CampaignRepository {
     this.client = client
   }
 
-  async loadWorkspace(): Promise<CampaignWorkspace> {
+  async loadWorkspace(userId: ID, preferredRole: CampaignMember['role'], displayName = 'Dungeon Master'): Promise<CampaignWorkspace> {
+    const campaignId = await this.findCampaignIdForCurrentUser(userId)
+
+    if (campaignId) {
+      return this.loadWorkspaceByCampaignId(campaignId)
+    }
+
+    if (preferredRole === 'dm') {
+      return this.createInitialDmWorkspace(userId, displayName)
+    }
+
+    throw new Error('No hay campañas vinculadas a este usuario. Pide al DM que te añada a una campaña.')
+  }
+
+  private async findCampaignIdForCurrentUser(userId: ID): Promise<ID | null> {
     const { data: membership, error: membershipError } = await this.client
       .from('campaign_members')
       .select('campaignId')
+      .eq('userId', userId)
       .limit(1)
       .maybeSingle()
 
@@ -36,8 +44,52 @@ export class SupabaseCampaignRepository implements CampaignRepository {
       throw new Error(membershipError.message)
     }
 
-    const campaignId = unwrap(membership?.campaignId as string | undefined, 'No hay campanas vinculadas a este usuario')
+    return (membership?.campaignId as ID | undefined) ?? null
+  }
 
+  private async createInitialDmWorkspace(userId: ID, displayName: string): Promise<CampaignWorkspace> {
+    const campaignId = createId('campaign')
+    const activeMapId = createId('map')
+    const campaign = {
+      id: campaignId,
+      name: 'Aldepe D&D',
+      description: 'Campaña inicial creada para el DM.',
+      activeMapId,
+    }
+    const member: CampaignMember = {
+      id: createId('member'),
+      campaignId,
+      userId,
+      role: 'dm',
+      displayName: displayName.trim() || 'Dungeon Master',
+      canDrawOnMap: true,
+    }
+    const map = {
+      ...createBlankMap(campaignId),
+      id: activeMapId,
+      name: 'Claro bioluminiscente',
+      isActive: true,
+    }
+
+    const { error: campaignError } = await this.client.from('campaigns').insert(campaign)
+    if (campaignError) {
+      throw new Error(campaignError.message)
+    }
+
+    const { error: memberError } = await this.client.from('campaign_members').insert(member)
+    if (memberError) {
+      throw new Error(memberError.message)
+    }
+
+    const { error: mapError } = await this.client.from('maps').insert(map)
+    if (mapError) {
+      throw new Error(mapError.message)
+    }
+
+    return this.loadWorkspaceByCampaignId(campaignId)
+  }
+
+  private async loadWorkspaceByCampaignId(campaignId: ID): Promise<CampaignWorkspace> {
     const [
       campaignResult,
       membersResult,

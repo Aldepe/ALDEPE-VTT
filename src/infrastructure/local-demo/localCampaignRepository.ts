@@ -134,7 +134,7 @@ function persistWorkspace(workspace: CampaignWorkspace): CampaignWorkspace {
 }
 
 export class LocalCampaignRepository implements CampaignRepository {
-  async loadWorkspace(userId: ID, preferredRole: CampaignMember['role']): Promise<CampaignWorkspace> {
+  async loadWorkspace(userId: ID, preferredRole: CampaignMember['role'], displayName?: string): Promise<CampaignWorkspace> {
     const workspace = readWorkspace()
     const expectedUserId = preferredRole === 'dm' ? 'demo-dm' : 'demo-player'
     if (userId === expectedUserId) {
@@ -144,7 +144,9 @@ export class LocalCampaignRepository implements CampaignRepository {
     return {
       ...workspace,
       members: workspace.members.map((member) =>
-        member.role === preferredRole ? { ...member, userId, displayName: preferredRole === 'dm' ? 'DM Local' : 'Player Local' } : member,
+        member.role === preferredRole
+          ? { ...member, userId, displayName: displayName || (preferredRole === 'dm' ? 'DM Local' : 'Player Local') }
+          : member,
       ),
       characters: workspace.characters.map((character) =>
         preferredRole === 'player' ? { ...character, ownerUserId: userId } : character,

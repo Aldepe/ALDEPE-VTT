@@ -142,9 +142,9 @@ export function NotesPage({ campaignId, notes, onDelete, onSave, viewerMember }:
     <section className="page-grid notes-page" aria-labelledby="notes-title">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Notas de campana</p>
+          <p className="eyebrow">Notas de campaña</p>
           <h2 id="notes-title">Notas</h2>
-          <p>Notas personales, compartidas y de DM con busqueda y tags.</p>
+          <p>Notas personales, compartidas y de DM con búsqueda y tags.</p>
         </div>
         <button className="primary-button" onClick={() => void createNote()} type="button">
           <Plus size={17} aria-hidden="true" />
@@ -202,7 +202,7 @@ export function NotesPage({ campaignId, notes, onDelete, onSave, viewerMember }:
           viewerMember={viewerMember}
         />
       ) : (
-        <EmptyState icon={<BookMarked size={30} />} message="Crea una nota para empezar." title="Cuaderno vacio" />
+        <EmptyState icon={<BookMarked size={30} />} message="Crea una nota para empezar." title="Cuaderno vacío" />
       )}
     </section>
   )
