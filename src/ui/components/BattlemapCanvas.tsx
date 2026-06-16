@@ -142,9 +142,24 @@ function drawBattleArea(context: CanvasRenderingContext2D, area: BattleArea, sel
   }
 
   if (area.type === 'line') {
+    const angle = Math.atan2(area.end.y - area.start.y, area.end.x - area.start.x)
+    const arrowLength = Math.max(18, area.strokeWidth * 4)
     context.beginPath()
     context.moveTo(area.start.x, area.start.y)
     context.lineTo(area.end.x, area.end.y)
+    context.stroke()
+
+    context.beginPath()
+    context.moveTo(area.end.x, area.end.y)
+    context.lineTo(
+      area.end.x - arrowLength * Math.cos(angle - Math.PI / 7),
+      area.end.y - arrowLength * Math.sin(angle - Math.PI / 7),
+    )
+    context.moveTo(area.end.x, area.end.y)
+    context.lineTo(
+      area.end.x - arrowLength * Math.cos(angle + Math.PI / 7),
+      area.end.y - arrowLength * Math.sin(angle + Math.PI / 7),
+    )
     context.stroke()
   }
 
@@ -163,7 +178,7 @@ function drawBattleArea(context: CanvasRenderingContext2D, area: BattleArea, sel
   context.textAlign = 'left'
   context.shadowColor = area.color
   context.shadowBlur = 12
-  context.fillText(`${area.name || area.type}${isPrivate ? ' - DM' : ''}`, area.start.x + 12, area.start.y - 12)
+  context.fillText(`${area.notes || area.name || area.type}${isPrivate ? ' - DM' : ''}`, area.start.x + 12, area.start.y - 12)
   context.restore()
 }
 
@@ -582,8 +597,11 @@ export function BattlemapCanvas({
     }
 
     if (interaction.kind === 'drag-token') {
+      const targetPoint = placementMode === 'free'
+        ? { x: rawPoint.x - interaction.offset.x, y: rawPoint.y - interaction.offset.y }
+        : rawPoint
       const nextCenter = snapPointByPlacementMode(
-        { x: rawPoint.x - interaction.offset.x, y: rawPoint.y - interaction.offset.y },
+        targetPoint,
         map.gridSize,
         placementMode,
       )
@@ -615,7 +633,8 @@ export function BattlemapCanvas({
   function handlePointerUp() {
     if (interaction.kind === 'draw') {
       if (activeTool === 'measure') {
-        onMeasure(`${distanceFeet(interaction.start, interaction.current, map.gridSize)} ft`)
+        const label = `${distanceFeet(interaction.start, interaction.current, map.gridSize)} ft`
+        onMeasure(label)
         onAddBattleArea({
           ...CreateBattleAreaUseCase({
             campaignId: map.campaignId,
@@ -629,6 +648,7 @@ export function BattlemapCanvas({
             placementMode,
           }),
           name: 'Measurement',
+          notes: label,
           opacity: 0.1,
         })
       } else if (isDrawingTool(activeTool)) {

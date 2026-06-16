@@ -20,5 +20,6 @@ export interface LoreEntry {
   secret: string
   linkedEntryIds: ID[]
   isVisibleToPlayers: boolean
+  visibleToPlayerIds?: ID[]
   updatedAt: string
 }

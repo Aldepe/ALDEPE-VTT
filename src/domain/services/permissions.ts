@@ -43,7 +43,16 @@ export function canViewQuest(member: CampaignMember | undefined, quest: Quest): 
 }
 
 export function canViewLore(member: CampaignMember | undefined, entry: LoreEntry): boolean {
-  return isDm(member) || entry.isVisibleToPlayers
+  if (isDm(member)) {
+    return true
+  }
+
+  if (!member || !entry.isVisibleToPlayers) {
+    return false
+  }
+
+  const visibleToPlayerIds = entry.visibleToPlayerIds ?? []
+  return visibleToPlayerIds.length === 0 || visibleToPlayerIds.includes(member.userId)
 }
 
 export function canViewVisibility(member: CampaignMember | undefined, visibility: Visibility): boolean {

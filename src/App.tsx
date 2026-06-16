@@ -438,6 +438,7 @@ export default function App() {
           campaignId={workspace.campaign.id}
           entries={workspace.loreEntries}
           isDm={isDm(viewerMember)}
+          members={workspace.members}
           onDelete={deleteLoreEntry}
           onSave={saveLoreEntry}
           viewerMember={viewerMember}

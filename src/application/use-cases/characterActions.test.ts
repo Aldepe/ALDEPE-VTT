@@ -87,8 +87,28 @@ describe('character action use cases', () => {
 
     expect(actionLabels).toEqual(expect.arrayContaining(['Attack', 'Dash', 'Disengage', 'Hide', 'Use Object']))
     expect(actionLabels).not.toEqual(expect.arrayContaining(['Cast Spell', 'Dodge', 'Help', 'Ready', 'Search']))
-    expect('freeAction' in options).toBe(false)
+    expect(options.freeAction.map((option) => option.label)).toContain('Free Action')
     expect(options.movement.map((option) => option.label)).toEqual(expect.arrayContaining(['Move', 'Climb', 'Swim', 'Jump', 'Stand up']))
+  })
+
+  it('reflects feature resource bonuses in turn planning', () => {
+    const character = {
+      ...createBlankCharacter('campaign', 'player'),
+      features: [
+        {
+          ...createBlankCharacter('campaign', 'player').features[0],
+          id: 'feature_action_surge',
+          name: 'Action Surge',
+          type: 'free' as const,
+          resourceBonuses: { actions: 1, bonusActions: 1, attacks: 1 },
+        },
+      ],
+    }
+    const options = ListTurnActionOptionsByCostUseCase(character, 15)
+    const plan = SelectTurnActionUseCase(CreateTurnPlanUseCase(character), { action: { ...character.actions[0], actionCost: 'action' } })
+
+    expect(options.freeAction.map((option) => option.label)).toContain('Action Surge')
+    expect(ValidateTurnPlanUseCase(character, plan).status).toBe('valid')
   })
 
   it('only exposes Cast Spell when spellcasting is enabled and prepared spells exist', () => {

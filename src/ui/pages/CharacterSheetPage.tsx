@@ -97,7 +97,8 @@ const loreFields: Array<{ key: keyof CharacterLore; label: string; long?: boolea
   { key: 'other', label: 'Other', long: true },
 ]
 
-const loreLongFields = loreFields.filter((field) => field.long)
+const loreBackgroundField = loreFields.find((field) => field.key === 'background')
+const loreLongFields = loreFields.filter((field) => field.long && field.key !== 'background')
 const loreShortFields = loreFields.filter((field) => !field.long)
 
 const featureSourceOptions: Array<{ value: FeatureSourceType; label: string }> = [
@@ -397,6 +398,20 @@ function LoreWikiPage({ canEdit, character, onLoreChange }: LoreWikiPageProps) {
         </article>
       </div>
 
+      {loreBackgroundField ? (
+        <section className="lore-article-section lore-background-section" key={loreBackgroundField.key}>
+          <div className="lore-section-title">
+            <LineIcon className="condition-symbol" label={`Icono de ${loreBackgroundField.label}`} name={loreIconForField(loreBackgroundField.key)} />
+            <h4>{loreBackgroundField.label}</h4>
+          </div>
+          {canEdit ? (
+            <TextArea onChange={(event) => onLoreChange(loreBackgroundField.key, event.target.value)} value={character.lore[loreBackgroundField.key]} />
+          ) : (
+            <p className="lore-readonly-text">{character.lore[loreBackgroundField.key] || 'Sin notas'}</p>
+          )}
+        </section>
+      ) : null}
+
       <div className="lore-article-section-list">
         {loreLongFields.map((field) => (
           <section className="lore-article-section" key={field.key}>
@@ -439,6 +454,15 @@ function FeatureEditorCard({
 
   function update(patch: Partial<CharacterFeature>) {
     onPatch(UpdateCharacterFeatureUseCase(feature, patch))
+  }
+
+  function updateResourceBonus(key: 'actions' | 'bonusActions' | 'attacks', value: number) {
+    update({
+      resourceBonuses: {
+        ...feature.resourceBonuses,
+        [key]: Math.max(0, value),
+      },
+    })
   }
 
   return (
@@ -496,7 +520,7 @@ function FeatureEditorCard({
               <SelectInput onChange={(event) => update({ type: event.target.value as CharacterFeature['type'] })} value={feature.type}>
                 <option value="action">Action</option>
                 <option value="bonusAction">Bonus Action</option>
-                <option value="reaction">Reaction</option>
+                <option value="free">Free Action</option>
                 <option value="movement">Movement</option>
                 <option value="passive">Passive</option>
               </SelectInput>
@@ -514,6 +538,15 @@ function FeatureEditorCard({
             </Field>
             <Field label="Usos actuales">
               <NumberInput min={0} onChange={(event) => update({ currentUses: Number(event.target.value) })} value={feature.currentUses ?? 0} />
+            </Field>
+            <Field label="+ Actions">
+              <NumberInput min={0} onChange={(event) => updateResourceBonus('actions', Number(event.target.value))} value={feature.resourceBonuses?.actions ?? 0} />
+            </Field>
+            <Field label="+ Bonus Actions">
+              <NumberInput min={0} onChange={(event) => updateResourceBonus('bonusActions', Number(event.target.value))} value={feature.resourceBonuses?.bonusActions ?? 0} />
+            </Field>
+            <Field label="+ Ataques">
+              <NumberInput min={0} onChange={(event) => updateResourceBonus('attacks', Number(event.target.value))} value={feature.resourceBonuses?.attacks ?? 0} />
             </Field>
           </div>
 

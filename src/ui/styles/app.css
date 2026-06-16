@@ -111,6 +111,7 @@ body::after {
     linear-gradient(180deg, rgba(2, 5, 17, 0.94), rgba(7, 15, 38, 0.84)),
     repeating-linear-gradient(0deg, transparent 0 38px, rgba(34, 240, 200, 0.07) 38px 39px);
   height: 100vh;
+  overflow-y: auto;
   box-shadow: 12px 0 46px rgba(0, 0, 0, 0.28), inset -1px 0 24px rgba(34, 240, 200, 0.1);
 }
 
@@ -435,10 +436,20 @@ small {
 .scroll-panel {
   overflow: auto;
   min-height: 0;
+  min-width: 0;
 }
 
 .character-page {
   grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.character-page .section-panel,
+.character-page .scroll-panel,
+.actions-playmat {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .sheet-tab-list {
@@ -1234,7 +1245,7 @@ textarea:focus {
   border-color: rgba(182, 134, 255, 0.38);
 }
 
-.action-cost-consumeReaction {
+.action-cost-freeAction {
   border-color: rgba(247, 230, 111, 0.38);
 }
 
@@ -1305,7 +1316,9 @@ textarea:focus {
   color: var(--violet);
 }
 
-.cost-reaction {
+.cost-reaction,
+.cost-free,
+.cost-passive {
   color: var(--gold);
 }
 
@@ -2289,19 +2302,20 @@ textarea:focus {
   grid-template-rows: minmax(250px, auto) auto;
   gap: 16px;
   min-width: 0;
+  padding: 4px 6px 12px;
 }
 
 .timeline-track {
   display: flex;
   gap: 14px;
   overflow-x: auto;
-  padding-bottom: 8px;
+  padding: 12px 14px 18px;
   min-height: 250px;
 }
 
 .session-entry {
   flex: 0 0 320px;
-  padding: 16px;
+  padding: 20px;
 }
 
 .session-entry h3 {
@@ -2420,8 +2434,8 @@ textarea:focus {
 }
 
 .detail-hero img {
-  width: 104px;
-  height: 104px;
+  width: min(190px, 42vw);
+  height: min(190px, 42vw);
   object-fit: cover;
   border-radius: 8px;
 }
@@ -2446,11 +2460,45 @@ textarea:focus {
 .linked-picker > div {
   display: grid;
   gap: 7px;
-  max-height: 150px;
+  max-height: min(260px, 34vh);
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 8px;
+}
+
+.lore-editor {
+  min-height: 0;
+  max-height: calc(100vh - 150px);
+  overflow: auto;
+  padding-bottom: 28px;
+}
+
+.lore-editor-type-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.player-visibility-picker,
+.player-visibility-list {
+  display: grid;
+  gap: 8px;
+}
+
+.player-visibility-picker {
+  border: 1px solid rgba(34, 240, 200, 0.24);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(34, 240, 200, 0.07);
+}
+
+.player-visibility-picker .panel-heading span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--cyan);
+  font-weight: 850;
 }
 
 .segmented {
@@ -2496,6 +2544,17 @@ textarea:focus {
   min-height: 0;
 }
 
+.battle-layout-use {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+}
+
+.battle-mode-tabs button.is-active {
+  border-color: rgba(34, 240, 200, 0.76);
+  color: var(--cyan);
+  background: rgba(34, 240, 200, 0.12);
+  box-shadow: 0 0 18px rgba(34, 240, 200, 0.18);
+}
+
 .battle-toolbar {
   display: flex;
   flex-direction: column;
@@ -2533,6 +2592,10 @@ textarea:focus {
   overflow: auto;
 }
 
+.battle-side-use {
+  align-content: start;
+}
+
 .battle-feedback-chip {
   display: inline-flex;
   width: fit-content;
@@ -2547,7 +2610,8 @@ textarea:focus {
 }
 
 .layer-panel,
-.player-initiative-panel {
+.player-initiative-panel,
+.map-settings-panel {
   display: grid;
   gap: 12px;
 }
@@ -3895,7 +3959,7 @@ textarea:focus {
 
 .dual-list {
   display: grid;
-  grid-template-columns: minmax(260px, 0.72fr) minmax(420px, 1.28fr);
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
   gap: 0.85rem;
   align-items: start;
 }
@@ -3926,7 +3990,7 @@ textarea:focus {
 }
 
 .skill-badge {
-  grid-template-columns: 34px minmax(0, 1fr) 32px 32px 48px;
+  grid-template-columns: 34px minmax(0, 1fr) 32px 32px minmax(42px, auto);
   gap: 0.38rem 0.45rem;
   min-height: 54px;
   padding: 0.45rem;
@@ -4081,6 +4145,15 @@ textarea:focus {
 .lore-article-section {
   min-width: 0;
   overflow: hidden;
+}
+
+.lore-background-section {
+  min-height: 220px;
+}
+
+.lore-background-section textarea,
+.lore-background-section .lore-readonly-text {
+  min-height: 180px;
 }
 
 .lore-article-section textarea,

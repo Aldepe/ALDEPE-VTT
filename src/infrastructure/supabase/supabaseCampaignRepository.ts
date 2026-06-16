@@ -164,6 +164,7 @@ export class SupabaseCampaignRepository implements CampaignRepository {
       loreEntries: ((loreResult.data ?? []) as Array<LoreEntry & { lore_links?: { target_id: ID }[] }>).map((entry) => ({
         ...entry,
         linkedEntryIds: entry.lore_links?.map((link) => link.target_id) ?? entry.linkedEntryIds ?? [],
+        visibleToPlayerIds: entry.visibleToPlayerIds ?? [],
       })),
       maps,
       tokens: ((tokenRows.data ?? []) as Token[]).map(NormalizeTokenUseCase),

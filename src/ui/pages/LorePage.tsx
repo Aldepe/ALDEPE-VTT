@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-import { BookMarked, ImagePlus, Link2, Search, Trash2 } from 'lucide-react'
+import { BookMarked, ImagePlus, Link2, Search, Trash2, Users } from 'lucide-react'
 import type { CampaignMember } from '@domain/entities/common'
 import type { LoreEntry, LoreType } from '@domain/entities/lore'
 import { canViewLore } from '@domain/services/permissions'
 import { createBlankLoreEntry } from '@application/use-cases/workspaceFactories'
-import { loreFieldTemplates, loreTypeLabels } from '@shared/constants/lore'
+import { loreTypeLabels } from '@shared/constants/lore'
 import { fileToDataUrl } from '@shared/utils/fileToDataUrl'
 import { Field, SelectInput, TextArea, TextInput } from '@ui/components/FormControls'
 import { EmptyState } from '@ui/components/EmptyState'
@@ -14,6 +14,7 @@ interface LorePageProps {
   campaignId: string
   entries: LoreEntry[]
   isDm: boolean
+  members: CampaignMember[]
   onDelete: (entryId: string) => Promise<void>
   onSave: (entry: LoreEntry) => Promise<void>
   viewerMember: CampaignMember
@@ -25,12 +26,13 @@ function publicFieldLabel(field: string): string {
   return field.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase())
 }
 
-export function LorePage({ campaignId, entries, isDm, onDelete, onSave, viewerMember }: LorePageProps) {
+export function LorePage({ campaignId, entries, isDm, members, onDelete, onSave, viewerMember }: LorePageProps) {
   const [selectedType, setSelectedType] = useState<LoreType | 'all'>('all')
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | undefined>(entries[0]?.id)
   const selectedEntry = entries.find((entry) => entry.id === selectedId)
   const [draft, setDraft] = useState<LoreEntry>(() => selectedEntry ?? createBlankLoreEntry(campaignId, 'artifact'))
+  const playerMembers = useMemo(() => members.filter((member) => member.role === 'player'), [members])
 
   const visibleEntries = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -69,18 +71,6 @@ export function LorePage({ campaignId, entries, isDm, onDelete, onSave, viewerMe
     }))
   }
 
-  function changeType(type: LoreType) {
-    setDraft((current) => {
-      const nextFields = Object.fromEntries(loreFieldTemplates[type].map((field) => [field, current.publicFields[field] ?? '']))
-      return {
-        ...current,
-        type,
-        publicFields: nextFields,
-        updatedAt: new Date().toISOString(),
-      }
-    })
-  }
-
   function toggleLinkedEntry(entryId: string) {
     setDraft((current) => ({
       ...current,
@@ -89,6 +79,36 @@ export function LorePage({ campaignId, entries, isDm, onDelete, onSave, viewerMe
         : [...current.linkedEntryIds, entryId],
       updatedAt: new Date().toISOString(),
     }))
+  }
+
+  function togglePlayerVisibility(userId: string) {
+    setDraft((current) => {
+      const playerIds = playerMembers.map((member) => member.userId)
+      const currentIds = current.visibleToPlayerIds ?? []
+      const selectedIds = new Set(currentIds.length ? currentIds : playerIds)
+
+      if (selectedIds.has(userId)) {
+        selectedIds.delete(userId)
+      } else {
+        selectedIds.add(userId)
+      }
+
+      const nextIds = selectedIds.size === playerIds.length ? [] : playerIds.filter((playerId) => selectedIds.has(playerId))
+      return {
+        ...current,
+        visibleToPlayerIds: nextIds,
+        updatedAt: new Date().toISOString(),
+      }
+    })
+  }
+
+  function playerCanSeeDraft(userId: string): boolean {
+    const visibleToPlayerIds = draft.visibleToPlayerIds ?? []
+    return draft.isVisibleToPlayers && (visibleToPlayerIds.length === 0 || visibleToPlayerIds.includes(userId))
+  }
+
+  function makeVisibleToEveryPlayer() {
+    setDraft((current) => ({ ...current, visibleToPlayerIds: [], updatedAt: new Date().toISOString() }))
   }
 
   async function uploadImage(event: ChangeEvent<HTMLInputElement>) {
@@ -149,7 +169,7 @@ export function LorePage({ campaignId, entries, isDm, onDelete, onSave, viewerMe
             <button className="lore-list-item" key={entry.id} onClick={() => selectEntry(entry)} type="button">
               <span>{loreTypeLabels[entry.type]}</span>
               <strong>{entry.name || 'Entrada sin nombre'}</strong>
-              {!entry.isVisibleToPlayers ? <small>Oculta</small> : null}
+              {!entry.isVisibleToPlayers ? <small>Oculta</small> : entry.visibleToPlayerIds?.length ? <small>Visibilidad parcial</small> : null}
             </button>
           ))
         ) : (
@@ -211,23 +231,11 @@ export function LorePage({ campaignId, entries, isDm, onDelete, onSave, viewerMe
             <button className="icon-button danger" onClick={() => selectedEntry && confirmDelete(selectedEntry.id)} title="Borrar lore" type="button">
               <Trash2 size={16} aria-hidden="true" />
             </button>
+            <button className="ghost-button" onClick={() => startNewEntry(selectedType === 'all' ? draft.type : selectedType)} type="button">
+              Nueva entrada
+            </button>
           </div>
-          <div className="segmented wrap" role="group" aria-label="Crear entrada por tipo">
-            {loreTypes.map((type) => (
-              <button key={type} onClick={() => startNewEntry(type)} type="button">
-                {loreTypeLabels[type]}
-              </button>
-            ))}
-          </div>
-          <Field label="Tipo">
-            <SelectInput onChange={(event) => changeType(event.target.value as LoreType)} value={draft.type}>
-              {loreTypes.map((type) => (
-                <option key={type} value={type}>
-                  {loreTypeLabels[type]}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
+          <p className="lore-editor-type-note">Tipo actual: {loreTypeLabels[draft.type]}. Usa el selector superior para crear otro tipo.</p>
           <Field label="Nombre">
             <TextInput onChange={(event) => setDraft({ ...draft, name: event.target.value })} value={draft.name} />
           </Field>
@@ -252,6 +260,30 @@ export function LorePage({ campaignId, entries, isDm, onDelete, onSave, viewerMe
             />
             Visible para players
           </label>
+          {draft.isVisibleToPlayers ? (
+            <div className="player-visibility-picker">
+              <div className="panel-heading compact-panel-heading">
+                <span><Users size={16} aria-hidden="true" /> Players que lo ven</span>
+                <button className="ghost-button" onClick={makeVisibleToEveryPlayer} type="button">Todos</button>
+              </div>
+              {playerMembers.length ? (
+                <div className="player-visibility-list">
+                  {playerMembers.map((member) => (
+                    <label className="check-row" key={member.id}>
+                      <input
+                        checked={playerCanSeeDraft(member.userId)}
+                        onChange={() => togglePlayerVisibility(member.userId)}
+                        type="checkbox"
+                      />
+                      <span>{member.displayName}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="muted-line">No hay players vinculados todavia.</p>
+              )}
+            </div>
+          ) : null}
           <div className="linked-picker">
             <span>Vinculos</span>
             <div>

@@ -66,7 +66,7 @@ type SelectionMode = 'attack' | 'spell' | 'feature' | undefined
 const actionCostSections: Array<{ id: ActionOptionCostGroup; title: string; eyebrow: string; description: string }> = [
   { id: 'consumeAction', title: 'Action', eyebrow: 'Action', description: 'Ataque, spell o accion principal.' },
   { id: 'consumeBonusAction', title: 'Bonus', eyebrow: 'Bonus', description: 'Solo opciones reales disponibles.' },
-  { id: 'consumeReaction', title: 'Reaction', eyebrow: 'React', description: 'Respuesta preparada.' },
+  { id: 'freeAction', title: 'Free', eyebrow: 'Free', description: 'Opciones libres y rasgos pasivos.' },
   { id: 'movement', title: 'Move', eyebrow: 'Move', description: 'Movimiento del turno.' },
 ]
 
@@ -76,7 +76,7 @@ function actionCostLabel(cost: ActionCost): string {
     bonusAction: 'Bonus Action',
     reaction: 'Reaction',
     movement: 'Movement',
-    free: 'No Action',
+    free: 'Free Action',
     passive: 'Passive',
   }
   return labels[cost]
@@ -117,8 +117,7 @@ function optionIcon(option: TurnActionOption): LucideIcon {
     hide: Eye,
     object: Sparkles,
     feature: Zap,
-    feature_bonus: Sparkles,
-    feature_reaction: ShieldAlert,
+    free_interact: Sparkles,
     move: Footprints,
     climb: Footprints,
     swim: Footprints,
@@ -231,6 +230,12 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
     if (option.action) {
       setTurnPlan((current) => SelectTurnActionUseCase(current, { action: option.action }))
       setFeedback(`${option.label} anadido al plan.`)
+      return
+    }
+
+    if (option.feature) {
+      setTurnPlan((current) => SelectTurnActionUseCase(current, { feature: option.feature }))
+      setFeedback(`${option.label} anadido al plan.`)
     }
   }
 
@@ -314,7 +319,12 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
           <article className={clsx('turn-resource-tile', resourceClass(resourceSummary.action))}>
             <Swords size={26} aria-hidden="true" />
             <strong>Action</strong>
-            <span>{character.turnState.actionSpent ? '0/1' : resourceSummary.action === 'pending' ? 'pendiente' : '1/1'}</span>
+            <span>{resourceSummary.actionRemaining}/{resourceSummary.actionLimit}</span>
+          </article>
+          <article className={clsx('turn-resource-tile', resourceSummary.attacksRemaining <= 0 ? 'is-spent' : resourceSummary.attacksPending ? 'is-pending' : 'is-ready')}>
+            <Dice5 size={26} aria-hidden="true" />
+            <strong>Ataques</strong>
+            <span>{resourceSummary.attacksRemaining}/{resourceSummary.attacksLimit}</span>
           </article>
           <article className={clsx('turn-resource-tile', resourceSummary.movementPending ? 'is-pending' : movementRemaining <= 0 ? 'is-spent' : 'is-ready')}>
             <Footprints size={26} aria-hidden="true" />
@@ -324,7 +334,7 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
           <article className={clsx('turn-resource-tile', resourceClass(resourceSummary.bonusAction))}>
             <Sparkles size={26} aria-hidden="true" />
             <strong>Bonus Action</strong>
-            <span>{character.turnState.bonusActionSpent ? '0/1' : resourceSummary.bonusAction === 'pending' ? 'pendiente' : '1/1'}</span>
+            <span>{resourceSummary.bonusActionRemaining}/{resourceSummary.bonusActionLimit}</span>
           </article>
           {character.spellcasting.isSpellcaster ? (
             <article className="turn-resource-tile spell-slot-resource is-ready">
@@ -353,11 +363,6 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
               </div>
             </article>
           ) : null}
-          <article className={clsx('turn-resource-tile', resourceClass(resourceSummary.reaction))}>
-            <ShieldAlert size={26} aria-hidden="true" />
-            <strong>Reaction</strong>
-            <span>{character.turnState.reactionSpent ? '0/1' : resourceSummary.reaction === 'pending' ? 'pendiente' : '1/1'}</span>
-          </article>
         </div>
       </section>
 
@@ -414,7 +419,7 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
                         <SelectInput onChange={(event) => onChange(patchAction(character, UpdateCharacterActionUseCase(action, { actionCost: event.target.value as ActionCost })))} value={action.actionCost}>
                           <option value="action">Action</option>
                           <option value="bonusAction">Bonus Action</option>
-                          <option value="reaction">Reaction</option>
+                          <option value="free">Free Action</option>
                           <option value="movement">Movement</option>
                           <option value="passive">Passive</option>
                         </SelectInput>
@@ -551,7 +556,7 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
                         <SelectInput onChange={(event) => onChange(patchAttack(character, UpdateCharacterAttackUseCase(attack, { actionCost: event.target.value as ActionCost })))} value={attack.actionCost}>
                           <option value="action">Action</option>
                           <option value="bonusAction">Bonus Action</option>
-                          <option value="reaction">Reaction</option>
+                          <option value="free">Free Action</option>
                         </SelectInput>
                       </Field>
                       <Field label="Range">

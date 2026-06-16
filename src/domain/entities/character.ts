@@ -92,10 +92,18 @@ export type TurnPlanStatus = 'draft' | 'valid' | 'invalid' | 'computed' | 'undon
 
 export type TurnPlanItemType = 'attack' | 'spell' | 'action' | 'feature' | 'movement' | 'reaction' | 'trigger'
 
+export interface TurnResourceBonuses {
+  actions?: number
+  bonusActions?: number
+  attacks?: number
+}
+
 export interface CharacterTurnState {
   actionSpent: boolean
   bonusActionSpent: boolean
   reactionSpent: boolean
+  actionsSpent?: number
+  bonusActionsSpent?: number
   movementSpent: number
   attacksPerAction: number
   attacksSpent: number
@@ -168,6 +176,7 @@ export interface CharacterFeature {
   beginnerHint: string
   mechanicalEffect: string
   consumesTurnResource: boolean
+  resourceBonuses?: TurnResourceBonuses
   modifies: FeatureModifier[]
   active: boolean
   highlightForPlayer: boolean

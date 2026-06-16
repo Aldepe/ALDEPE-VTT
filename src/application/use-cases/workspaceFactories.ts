@@ -39,6 +39,8 @@ export function createDefaultTurnState(speed = 30, attacksPerAction = 1): Charac
     actionSpent: false,
     bonusActionSpent: false,
     reactionSpent: false,
+    actionsSpent: 0,
+    bonusActionsSpent: 0,
     movementSpent: 0,
     attacksPerAction,
     attacksSpent: 0,
@@ -141,6 +143,11 @@ export function createDefaultFeature(): CharacterFeature {
     beginnerHint: 'Recuérdalo cuando estés herido y aún tengas tu Bonus Action.',
     mechanicalEffect: 'Configurable: curación o recurso según clase.',
     consumesTurnResource: true,
+    resourceBonuses: {
+      actions: 0,
+      bonusActions: 0,
+      attacks: 0,
+    },
     modifies: ['defense'],
     active: false,
     highlightForPlayer: true,
@@ -208,6 +215,13 @@ export function createDefaultArmor(): CharacterArmor {
 }
 
 export function hydrateCharacterDefaults(character: CharacterSheet): CharacterSheet {
+  const hydratedTurnState = {
+    ...createDefaultTurnState(character.speed, character.turnState?.attacksPerAction ?? 1),
+    ...character.turnState,
+    actionsSpent: character.turnState?.actionsSpent ?? (character.turnState?.actionSpent ? 1 : 0),
+    bonusActionsSpent: character.turnState?.bonusActionsSpent ?? (character.turnState?.bonusActionSpent ? 1 : 0),
+  }
+
   const hydrated = {
     ...character,
     isVisibleToPlayer: character.isVisibleToPlayer ?? true,
@@ -226,7 +240,7 @@ export function hydrateCharacterDefaults(character: CharacterSheet): CharacterSh
     conditions: character.conditions ?? [],
     senses: character.senses ?? [],
     currency: character.currency ?? createDefaultCurrency(),
-    turnState: character.turnState ?? createDefaultTurnState(character.speed),
+    turnState: hydratedTurnState,
     actions: character.actions ?? [],
     attacks: character.attacks ?? [],
     triggers: character.triggers ?? [],
@@ -237,6 +251,7 @@ export function hydrateCharacterDefaults(character: CharacterSheet): CharacterSh
       functionalType: feature.functionalType ?? (feature.type === 'passive' ? 'passive' : 'utility'),
       icon: feature.icon ?? 'spark',
       beginnerHint: feature.beginnerHint ?? '',
+      resourceBonuses: feature.resourceBonuses ?? {},
       highlightForPlayer: feature.highlightForPlayer ?? false,
       highlightedByDm: feature.highlightedByDm ?? false,
     })),
@@ -247,6 +262,7 @@ export function hydrateCharacterDefaults(character: CharacterSheet): CharacterSh
       functionalType: feature.functionalType ?? (feature.type === 'passive' ? 'passive' : 'utility'),
       icon: feature.icon ?? 'spark',
       beginnerHint: feature.beginnerHint ?? '',
+      resourceBonuses: feature.resourceBonuses ?? {},
       highlightForPlayer: feature.highlightForPlayer ?? false,
       highlightedByDm: feature.highlightedByDm ?? false,
     })),
@@ -388,6 +404,7 @@ export function createBlankLoreEntry(campaignId: ID, type: LoreType): LoreEntry 
     secret: '',
     linkedEntryIds: [],
     isVisibleToPlayers: true,
+    visibleToPlayerIds: [],
     updatedAt: new Date().toISOString(),
   }
 }

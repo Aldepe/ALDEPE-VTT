@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CampaignMember } from '@domain/entities/common'
-import { canDeleteMap, canEditCharacter, canEditInventoryItem, canViewNote, canViewQuest, canViewSecret } from './permissions'
-import { createBlankCharacter } from '@application/use-cases/workspaceFactories'
+import { canDeleteMap, canEditCharacter, canEditInventoryItem, canViewLore, canViewNote, canViewQuest, canViewSecret } from './permissions'
+import { createBlankCharacter, createBlankLoreEntry } from '@application/use-cases/workspaceFactories'
 
 const dm: CampaignMember = {
   id: 'member_dm',
@@ -87,5 +87,15 @@ describe('permissions', () => {
     expect(canViewNote(player, partyNote)).toBe(true)
     expect(canViewNote(player, dmNote)).toBe(false)
     expect(canViewNote(dm, dmNote)).toBe(true)
+  })
+
+  it('can restrict lore visibility to selected players', () => {
+    const lore = { ...createBlankLoreEntry('campaign', 'artifact'), visibleToPlayerIds: ['player'] }
+    const otherPlayer = { ...player, id: 'member_other', userId: 'other', characterId: 'other_character' }
+
+    expect(canViewLore(dm, lore)).toBe(true)
+    expect(canViewLore(player, lore)).toBe(true)
+    expect(canViewLore(otherPlayer, lore)).toBe(false)
+    expect(canViewLore(player, { ...lore, visibleToPlayerIds: [] })).toBe(true)
   })
 })

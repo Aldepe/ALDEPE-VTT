@@ -49,13 +49,16 @@ export function ResetTurnResourcesUseCase(character: Character): Character {
 
 export function UseCharacterActionUseCase(character: Character, actionCost: ActionCost, actionId?: string): Character {
   const nextTurnState = { ...character.turnState }
+  const limits = GetTurnResourceLimitsUseCase(character)
 
   if (actionCost === 'action') {
-    nextTurnState.actionSpent = true
+    nextTurnState.actionsSpent = Math.min(limits.actions, getSpentActions(character) + 1)
+    nextTurnState.actionSpent = nextTurnState.actionsSpent >= limits.actions
   }
 
   if (actionCost === 'bonusAction') {
-    nextTurnState.bonusActionSpent = true
+    nextTurnState.bonusActionsSpent = Math.min(limits.bonusActions, getSpentBonusActions(character) + 1)
+    nextTurnState.bonusActionSpent = nextTurnState.bonusActionsSpent >= limits.bonusActions
   }
 
   if (actionCost === 'reaction') {
@@ -75,12 +78,14 @@ export function UseCharacterActionUseCase(character: Character, actionCost: Acti
 }
 
 export function MarkAttackUsedUseCase(character: Character, attackId: string): Character {
+  const limits = GetTurnResourceLimitsUseCase(character)
+  const attacksSpent = Math.min(limits.attacks, character.turnState.attacksSpent + 1)
   return {
     ...character,
     turnState: {
       ...character.turnState,
-      attacksSpent: Math.min(character.turnState.attacksPerAction, character.turnState.attacksSpent + 1),
-      actionSpent: character.turnState.attacksSpent + 1 >= character.turnState.attacksPerAction,
+      attacksSpent,
+      actionSpent: attacksSpent >= limits.attacks,
     },
     attacks: character.attacks.map((attack) => (attack.id === attackId ? { ...attack, used: true } : attack)),
   }
@@ -250,7 +255,7 @@ export function SelectTurnActionUseCase(plan: CharacterTurnPlan, input: SelectTu
       type: 'feature',
       name: input.feature.name,
       costType: input.feature.type,
-      costAmount: input.feature.type === 'passive' ? 0 : 1,
+      costAmount: input.feature.type === 'passive' || input.feature.type === 'free' ? 0 : 1,
       summary: input.feature.summary,
       featureId: input.feature.id,
       sortOrder: nextSortOrder(plan),
@@ -342,11 +347,26 @@ export interface TurnResourceSummary {
   action: 'ready' | 'pending' | 'spent'
   bonusAction: 'ready' | 'pending' | 'spent'
   reaction: 'ready' | 'pending' | 'spent'
+  actionLimit: number
+  actionPending: number
+  actionRemaining: number
+  bonusActionLimit: number
+  bonusActionPending: number
+  bonusActionRemaining: number
+  attacksLimit: number
+  attacksPending: number
+  attacksRemaining: number
   movementPending: number
   spellSlotsPendingByLevel: Record<number, number>
 }
 
-export type ActionOptionCostGroup = 'consumeAction' | 'consumeBonusAction' | 'consumeReaction' | 'movement'
+export interface TurnResourceLimits {
+  actions: number
+  bonusActions: number
+  attacks: number
+}
+
+export type ActionOptionCostGroup = 'consumeAction' | 'consumeBonusAction' | 'freeAction' | 'movement'
 
 export interface TurnActionOption {
   id: string
@@ -356,6 +376,7 @@ export interface TurnActionOption {
   description: string
   mode?: 'attack' | 'spell' | 'feature'
   action?: CharacterAction
+  feature?: CharacterFeature
   movementCost?: number
   movementKind?: 'move' | 'climb' | 'swim' | 'jump' | 'stand'
 }
@@ -370,6 +391,73 @@ function makeBasicAction(name: string, actionCost: ActionCost, description: stri
     quickNotes: description,
     applicableTriggerIds: [],
     used: false,
+  }
+}
+
+function positiveBonus(value: number | undefined): number {
+  return Math.max(0, Number(value ?? 0))
+}
+
+function getSpentActions(character: Character): number {
+  return character.turnState.actionsSpent ?? (character.turnState.actionSpent ? 1 : 0)
+}
+
+function getSpentBonusActions(character: Character): number {
+  return character.turnState.bonusActionsSpent ?? (character.turnState.bonusActionSpent ? 1 : 0)
+}
+
+export function GetTurnResourceLimitsUseCase(character: Character): TurnResourceLimits {
+  const resourceBonuses = [...character.features, ...character.traits].reduce(
+    (totals, feature) => ({
+      actions: totals.actions + positiveBonus(feature.resourceBonuses?.actions),
+      bonusActions: totals.bonusActions + positiveBonus(feature.resourceBonuses?.bonusActions),
+      attacks: totals.attacks + positiveBonus(feature.resourceBonuses?.attacks),
+    }),
+    { actions: 0, bonusActions: 0, attacks: 0 },
+  )
+  const actions = Math.max(1, 1 + resourceBonuses.actions)
+  const attacksPerAction = Math.max(1, character.turnState.attacksPerAction + resourceBonuses.attacks)
+
+  return {
+    actions,
+    bonusActions: Math.max(1, 1 + resourceBonuses.bonusActions),
+    attacks: actions * attacksPerAction,
+  }
+}
+
+function costGroupForCost(cost: ActionCost): ActionOptionCostGroup | undefined {
+  if (cost === 'action') {
+    return 'consumeAction'
+  }
+
+  if (cost === 'bonusAction') {
+    return 'consumeBonusAction'
+  }
+
+  if (cost === 'free' || cost === 'passive') {
+    return 'freeAction'
+  }
+
+  if (cost === 'movement') {
+    return 'movement'
+  }
+
+  return undefined
+}
+
+function featureToOption(feature: CharacterFeature): TurnActionOption | undefined {
+  const costGroup = costGroupForCost(feature.type)
+  if (!costGroup) {
+    return undefined
+  }
+
+  return {
+    id: feature.id,
+    label: feature.name,
+    cost: feature.type,
+    costGroup,
+    description: feature.beginnerHint || feature.summary || feature.mechanicalEffect,
+    feature,
   }
 }
 
@@ -389,43 +477,43 @@ export function ListTurnActionOptionsByCostUseCase(character: Character, movemen
 
   const customActions = character.actions
     .filter((action) => !['dash', 'disengage', 'hide', 'use object', 'use an object', 'dodge', 'help', 'ready', 'search', 'hablar', 'speak'].includes(action.name.trim().toLowerCase()))
-    .filter((action) => action.actionCost !== 'free' && action.actionCost !== 'passive' && action.actionCost !== 'movement')
+    .filter((action) => action.actionCost !== 'reaction')
     .map<TurnActionOption>((action) => ({
       id: action.id,
       label: action.name,
       cost: action.actionCost,
-      costGroup: action.actionCost === 'bonusAction' ? 'consumeBonusAction' : action.actionCost === 'reaction' ? 'consumeReaction' : 'consumeAction',
+      costGroup: costGroupForCost(action.actionCost) ?? 'consumeAction',
       description: action.quickNotes || action.description,
       action,
     }))
 
-  const hasBonusFeatures = [...character.features, ...character.traits].some((feature) => feature.type === 'bonusAction')
-  const hasReactionFeatures = [...character.features, ...character.traits].some((feature) => feature.type === 'reaction') || character.triggers.length > 0
+  const featureOptions = [...character.features, ...character.traits].map(featureToOption).filter((option): option is TurnActionOption => Boolean(option))
   const hasBonusSpells = availableSpells.some((spell) => spell.castingTime === 'bonusAction')
-  const hasReactionSpells = availableSpells.some((spell) => spell.castingTime === 'reaction')
+  const hasFreeSpells = availableSpells.some((spell) => spell.castingTime === 'free' || spell.castingTime === 'passive')
 
   return {
-    consumeAction: [...consumeAction, ...customActions.filter((option) => option.cost === 'action')],
-    consumeBonusAction: customActions.some((option) => option.cost === 'bonusAction') || hasBonusFeatures || hasBonusSpells
+    consumeAction: [...consumeAction, ...customActions.filter((option) => option.costGroup === 'consumeAction'), ...featureOptions.filter((option) => option.costGroup === 'consumeAction')],
+    consumeBonusAction: customActions.some((option) => option.costGroup === 'consumeBonusAction') || featureOptions.some((option) => option.costGroup === 'consumeBonusAction') || hasBonusSpells
       ? [
-          ...customActions.filter((option) => option.cost === 'bonusAction'),
+          ...customActions.filter((option) => option.costGroup === 'consumeBonusAction'),
+          ...featureOptions.filter((option) => option.costGroup === 'consumeBonusAction'),
           ...(hasBonusSpells ? [{ id: 'spell_bonus', label: 'Cast Bonus Spell', cost: 'bonusAction' as const, costGroup: 'consumeBonusAction' as const, description: 'Elige un spell configurado como Bonus Action.', mode: 'spell' as const }] : []),
-          ...(hasBonusFeatures ? [{ id: 'feature_bonus', label: 'Bonus features', cost: 'bonusAction' as const, costGroup: 'consumeBonusAction' as const, description: 'Elige una Bonus Action real del personaje.', mode: 'feature' as const }] : []),
         ]
       : [],
-    consumeReaction: customActions.some((option) => option.cost === 'reaction') || hasReactionFeatures || hasReactionSpells
-      ? [
-          ...customActions.filter((option) => option.cost === 'reaction'),
-          ...(hasReactionSpells ? [{ id: 'spell_reaction', label: 'Cast Reaction Spell', cost: 'reaction' as const, costGroup: 'consumeReaction' as const, description: 'Elige un spell configurado como Reaction.', mode: 'spell' as const }] : []),
-          ...(hasReactionFeatures ? [{ id: 'feature_reaction', label: 'Reactions/triggers', cost: 'reaction' as const, costGroup: 'consumeReaction' as const, description: 'Elige una reaccion o trigger real.', mode: 'feature' as const }] : []),
-        ]
-      : [],
+    freeAction: [
+      { id: 'free_interact', label: 'Free Action', cost: 'free', costGroup: 'freeAction', description: 'Hablar, soltar algo o hacer una interaccion menor.', action: makeBasicAction('Free Action', 'free', 'Accion libre: habla, senala, suelta algo o describe una interaccion menor.') },
+      ...customActions.filter((option) => option.costGroup === 'freeAction'),
+      ...featureOptions.filter((option) => option.costGroup === 'freeAction'),
+      ...(hasFreeSpells ? [{ id: 'spell_free', label: 'Cast Free Spell', cost: 'free' as const, costGroup: 'freeAction' as const, description: 'Elige un spell configurado como Free Action.', mode: 'spell' as const }] : []),
+    ],
     movement: [
       { id: 'move', label: 'Move', cost: 'movement', costGroup: 'movement', description: 'Reserva pies de movimiento.', movementCost, movementKind: 'move' },
       { id: 'climb', label: 'Climb', cost: 'movement', costGroup: 'movement', description: 'Trepar usando movimiento.', movementCost, movementKind: 'climb' },
       { id: 'swim', label: 'Swim', cost: 'movement', costGroup: 'movement', description: 'Nadar usando movimiento.', movementCost, movementKind: 'swim' },
       { id: 'jump', label: 'Jump', cost: 'movement', costGroup: 'movement', description: 'Saltar una distancia pactada.', movementCost, movementKind: 'jump' },
       { id: 'stand', label: 'Stand up', cost: 'movement', costGroup: 'movement', description: 'Levantarte del suelo.', movementCost: Math.ceil(movementCost / 2), movementKind: 'stand' },
+      ...customActions.filter((option) => option.costGroup === 'movement'),
+      ...featureOptions.filter((option) => option.costGroup === 'movement'),
     ],
   }
 }
@@ -451,6 +539,10 @@ function countPendingCost(plan: CharacterTurnPlan, cost: ActionCost): number {
 }
 
 export function SummarizeTurnPlanResourcesUseCase(character: Character, plan: CharacterTurnPlan): TurnResourceSummary {
+  const limits = GetTurnResourceLimitsUseCase(character)
+  const actionPending = countPendingCost(plan, 'action')
+  const bonusActionPending = countPendingCost(plan, 'bonusAction')
+  const attacksPending = plan.items.filter((item) => item.type === 'attack').length
   const pendingSpellSlots = plan.items.reduce<Record<number, number>>((levels, item) => {
     if (item.type === 'spell' && item.spellSlotLevel) {
       levels[item.spellSlotLevel] = (levels[item.spellSlotLevel] ?? 0) + 1
@@ -467,20 +559,31 @@ export function SummarizeTurnPlanResourcesUseCase(character: Character, plan: Ch
   }
 
   return {
-    action: stateFor(character.turnState.actionSpent, countPendingCost(plan, 'action')),
-    bonusAction: stateFor(character.turnState.bonusActionSpent, countPendingCost(plan, 'bonusAction')),
+    action: stateFor(availableActionCount(character) <= 0, actionPending),
+    bonusAction: stateFor(availableBonusActionCount(character) <= 0, bonusActionPending),
     reaction: stateFor(character.turnState.reactionSpent, countPendingCost(plan, 'reaction')),
+    actionLimit: limits.actions,
+    actionPending,
+    actionRemaining: Math.max(0, availableActionCount(character) - actionPending),
+    bonusActionLimit: limits.bonusActions,
+    bonusActionPending,
+    bonusActionRemaining: Math.max(0, availableBonusActionCount(character) - bonusActionPending),
+    attacksLimit: limits.attacks,
+    attacksPending,
+    attacksRemaining: Math.max(0, limits.attacks - character.turnState.attacksSpent - attacksPending),
     movementPending: plan.items.reduce((sum, item) => sum + (item.movementCost ?? 0), 0),
     spellSlotsPendingByLevel: pendingSpellSlots,
   }
 }
 
 function availableActionCount(character: Character): number {
-  return character.turnState.actionSpent ? 0 : 1
+  const limits = GetTurnResourceLimitsUseCase(character)
+  return Math.max(0, limits.actions - getSpentActions(character))
 }
 
 function availableBonusActionCount(character: Character): number {
-  return character.turnState.bonusActionSpent ? 0 : 1
+  const limits = GetTurnResourceLimitsUseCase(character)
+  return Math.max(0, limits.bonusActions - getSpentBonusActions(character))
 }
 
 function availableReactionCount(character: Character): number {
@@ -489,6 +592,7 @@ function availableReactionCount(character: Character): number {
 
 export function ValidateTurnPlanUseCase(character: Character, plan: CharacterTurnPlan): CharacterTurnPlan {
   const errors: string[] = []
+  const limits = GetTurnResourceLimitsUseCase(character)
   const actionCost = countPendingCost(plan, 'action')
   const bonusCost = countPendingCost(plan, 'bonusAction')
   const reactionCost = countPendingCost(plan, 'reaction')
@@ -508,8 +612,8 @@ export function ValidateTurnPlanUseCase(character: Character, plan: CharacterTur
     errors.push('Ya gastaste tu Reaction.')
   }
 
-  if (attackCount > character.turnState.attacksPerAction) {
-    errors.push(`Has seleccionado ${attackCount} ataques, pero solo tienes ${character.turnState.attacksPerAction} ataques por Action.`)
+  if (attackCount > limits.attacks - character.turnState.attacksSpent) {
+    errors.push(`Has seleccionado ${attackCount} ataques, pero solo tienes ${limits.attacks - character.turnState.attacksSpent} ataques disponibles este turno.`)
   }
 
   if (movementCost > movementAvailable) {
@@ -580,12 +684,17 @@ export function ComputeTurnPlanUseCase(character: Character, plan: CharacterTurn
   const movementCost = plan.items.reduce((sum, item) => sum + (item.movementCost ?? 0), 0)
   const attackItems = plan.items.filter((item) => item.type === 'attack')
   const nextTurnState = { ...character.turnState }
+  const limits = GetTurnResourceLimitsUseCase(character)
+  const actionsSpent = Math.min(limits.actions, getSpentActions(character) + actionCost)
+  const bonusActionsSpent = Math.min(limits.bonusActions, getSpentBonusActions(character) + bonusCost)
 
-  nextTurnState.actionSpent = character.turnState.actionSpent || actionCost > 0
-  nextTurnState.bonusActionSpent = character.turnState.bonusActionSpent || bonusCost > 0
+  nextTurnState.actionsSpent = actionsSpent
+  nextTurnState.bonusActionsSpent = bonusActionsSpent
+  nextTurnState.actionSpent = actionsSpent >= limits.actions
+  nextTurnState.bonusActionSpent = bonusActionsSpent >= limits.bonusActions
   nextTurnState.reactionSpent = character.turnState.reactionSpent || reactionCost > 0
   nextTurnState.movementSpent = Math.min(character.speed, character.turnState.movementSpent + movementCost)
-  nextTurnState.attacksSpent = Math.min(character.turnState.attacksPerAction, character.turnState.attacksSpent + attackItems.length)
+  nextTurnState.attacksSpent = Math.min(limits.attacks, character.turnState.attacksSpent + attackItems.length)
 
   plan.items.forEach((item) => {
     const flag = actionFlagForPlanItem(item)
