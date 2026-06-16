@@ -60,6 +60,10 @@ export class SupabaseAuthRepository implements AuthRepository {
       throw new Error(error?.message ?? 'No se pudo crear la cuenta')
     }
 
+    if (!data.session) {
+      throw new Error('Cuenta creada, pero Supabase requiere confirmar el email antes de entrar. Confirma el correo y después inicia sesión.')
+    }
+
     return {
       profile: {
         id: data.user.id,
