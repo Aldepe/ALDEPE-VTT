@@ -506,13 +506,15 @@ export function createPlayerToken(mapId: ID, character: CharacterSheet): Token {
 
 export function createMapAsset(mapId: ID, type: MapAssetType, x: number, y: number, visibility: Visibility): MapAsset {
   const definition = getMapAssetDefinition(type)
+  const label = type === 'text-label' ? 'Texto del mapa' : definition.name
+
   return {
     id: createId('asset'),
     mapId,
     type,
-    name: definition.name,
+    name: label,
     category: definition.category,
-    label: definition.name,
+    label,
     x,
     y,
     width: definition.baseWidthCells * 70,

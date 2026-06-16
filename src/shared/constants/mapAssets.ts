@@ -59,6 +59,7 @@ export const mapAssetDefinitions: MapAssetDefinition[] = [
   { type: 'spawn-point', name: 'Spawn point', category: 'marker', icon: '⊕', color: '#22f0c8', baseWidthCells: 1, baseHeightCells: 1 },
   { type: 'objective-marker', name: 'Objective marker', category: 'marker', icon: '★', color: '#f7e66f', baseWidthCells: 1, baseHeightCells: 1 },
   { type: 'interactable-prop', name: 'Interactable prop', category: 'marker', icon: '✜', color: '#75ffd8', baseWidthCells: 1, baseHeightCells: 1 },
+  { type: 'text-label', name: 'Texto', category: 'marker', icon: 'T', color: '#22f0c8', baseWidthCells: 3, baseHeightCells: 1 },
 ]
 
 export function getMapAssetDefinition(type: MapAssetType): MapAssetDefinition {

@@ -187,6 +187,78 @@ function drawBattleArea(context: CanvasRenderingContext2D, area: BattleArea, sel
   context.restore()
 }
 
+function wrapTextLines(context: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const paragraphs = text.split(/\r?\n/)
+  const lines: string[] = []
+
+  paragraphs.forEach((paragraph) => {
+    const words = paragraph.trim().split(/\s+/).filter(Boolean)
+    if (!words.length) {
+      lines.push('')
+      return
+    }
+
+    let line = ''
+    words.forEach((word) => {
+      const nextLine = line ? `${line} ${word}` : word
+      if (line && context.measureText(nextLine).width > maxWidth) {
+        lines.push(line)
+        line = word
+        return
+      }
+
+      line = nextLine
+    })
+
+    lines.push(line)
+  })
+
+  return lines.length ? lines : ['Texto del mapa']
+}
+
+function drawTextAsset(context: CanvasRenderingContext2D, asset: MapAsset, isPrivate: boolean) {
+  const padding = clamp(Math.min(asset.width, asset.height) * 0.18, 10, 22)
+  const fontSize = clamp(asset.height * 0.28, 14, 34)
+  const lineHeight = fontSize * 1.22
+  const maxTextWidth = Math.max(24, asset.width - padding * 2)
+  const maxLines = Math.max(1, Math.floor(Math.max(1, asset.height - padding * 2) / lineHeight))
+
+  context.lineWidth = 2.5
+  context.setLineDash(isPrivate ? [10, 6] : [])
+  context.strokeStyle = isPrivate ? '#ff4fa3' : asset.color
+  context.fillStyle = isPrivate ? 'rgba(255, 79, 163, 0.13)' : 'rgba(2, 10, 22, 0.72)'
+  context.shadowColor = asset.color
+  context.shadowBlur = 18
+  context.beginPath()
+  context.roundRect(asset.x, asset.y, asset.width, asset.height, 10)
+  context.fill()
+  context.stroke()
+
+  context.font = `800 ${fontSize}px Inter, system-ui`
+  context.textAlign = 'left'
+  context.textBaseline = 'top'
+  const wrappedLines = wrapTextLines(context, asset.label.trim() || 'Texto del mapa', maxTextWidth)
+  const visibleLines = wrappedLines.slice(0, maxLines)
+  if (wrappedLines.length > visibleLines.length) {
+    visibleLines[visibleLines.length - 1] = `${visibleLines[visibleLines.length - 1].replace(/\.*$/, '')}...`
+  }
+
+  context.fillStyle = '#f7fffb'
+  context.shadowBlur = 10
+  visibleLines.forEach((line, index) => {
+    context.fillText(line, asset.x + padding, asset.y + padding + index * lineHeight)
+  })
+
+  if (isPrivate) {
+    context.font = '800 11px Inter, system-ui'
+    context.textAlign = 'right'
+    context.textBaseline = 'bottom'
+    context.shadowBlur = 0
+    context.fillStyle = '#ffedf7'
+    context.fillText('DM', asset.x + asset.width - padding, asset.y + asset.height - padding * 0.6)
+  }
+}
+
 function drawAsset(context: CanvasRenderingContext2D, asset: MapAsset) {
   const definition = getMapAssetDefinition(asset.type)
   const isPrivate = isDmOnlyVisibility(asset.visibility)
@@ -201,6 +273,12 @@ function drawAsset(context: CanvasRenderingContext2D, asset: MapAsset) {
   context.fillStyle = colorWithOpacity(asset.color, 0.24)
   context.shadowColor = asset.color
   context.shadowBlur = 14
+
+  if (asset.type === 'text-label') {
+    drawTextAsset(context, asset, isPrivate)
+    context.restore()
+    return
+  }
 
   if (asset.type.includes('door') || asset.type.includes('wall') || asset.type === 'barricade' || asset.type === 'bridge') {
     context.fillRect(asset.x, asset.y, asset.width, asset.height)

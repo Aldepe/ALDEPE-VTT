@@ -824,6 +824,11 @@ export function BattlemapPage({
           onAddAsset={(asset) => {
             if (isDm) {
               void onSaveMapAsset(asset)
+              setSelectedAssetId(asset.id)
+              setSelectedAreaId(undefined)
+              setSelectedTokenId(undefined)
+              setSidePanel('assets')
+              setBattleFeedback(asset.type === 'text-label' ? 'Texto colocado. Edita el contenido en el inspector.' : `${asset.label} colocado.`)
             }
           }}
           onAddBattleArea={(area) => void onSaveBattleArea(CreatePlayerAreaUseCase(area, viewerMember))}
@@ -1154,9 +1159,15 @@ export function BattlemapPage({
                 ) : null}
               </div>
               <fieldset disabled={!canEditMapAsset(viewerMember, selectedAsset)}>
-                <Field label="Nombre">
-                  <TextInput onChange={(event) => void patchAsset(selectedAsset, { label: event.target.value, name: event.target.value })} value={selectedAsset.label} />
-                </Field>
+                {selectedAsset.type === 'text-label' ? (
+                  <Field label="Texto">
+                    <TextArea onChange={(event) => void patchAsset(selectedAsset, { label: event.target.value, name: event.target.value })} value={selectedAsset.label} />
+                  </Field>
+                ) : (
+                  <Field label="Nombre">
+                    <TextInput onChange={(event) => void patchAsset(selectedAsset, { label: event.target.value, name: event.target.value })} value={selectedAsset.label} />
+                  </Field>
+                )}
                 <div className="form-grid compact">
                   <Field label="X">
                     <NumberInput onChange={(event) => void patchAsset(selectedAsset, { x: Number(event.target.value) })} value={Math.round(selectedAsset.x)} />

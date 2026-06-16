@@ -60,6 +60,7 @@ export type MapAssetType =
   | 'spawn-point'
   | 'objective-marker'
   | 'interactable-prop'
+  | 'text-label'
 
 export interface BattleMap {
   id: ID
