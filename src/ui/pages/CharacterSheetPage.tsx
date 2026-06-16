@@ -16,7 +16,7 @@ import type {
 } from '@domain/entities/character'
 import type { SaveStatus } from '@domain/entities/common'
 import type { InventoryContainer, InventoryItem } from '@domain/entities/inventory'
-import { abilityLabels, formatSigned, recalculateCharacterBonuses, skillLabels } from '@domain/services/characterStats'
+import { abilityLabels, exhaustionStatPenalty, formatSigned, recalculateCharacterBonuses, skillLabels } from '@domain/services/characterStats'
 import {
   createDefaultArmor,
   createDefaultTool,
@@ -195,8 +195,8 @@ function statusLabel(status: SaveStatus): string {
   return 'Sin cambios pendientes'
 }
 
-function abilityModifier(value: number): string {
-  return formatSigned(Math.floor((value - 10) / 2))
+function abilityModifier(value: number, penalty = 0): string {
+  return formatSigned(Math.floor((value - 10) / 2) - penalty)
 }
 
 interface DeathSaveTrackerProps {
@@ -665,6 +665,8 @@ export function CharacterSheetPage({
   const [activeSheetTab, setActiveSheetTab] = useState<SheetTab>('overview')
   const [restFeedback, setRestFeedback] = useState('Sin descanso aplicado todavia.')
   const canConfigure = viewerIsDm && canEdit
+  const exhaustionPenalty = exhaustionStatPenalty(draft.exhaustion)
+  const hasExhaustionPenalty = exhaustionPenalty > 0
   const [selectedToolPreset, setSelectedToolPreset] = useState(toolPresetOptions[0].label)
   const [selectedWeaponPreset, setSelectedWeaponPreset] = useState(weaponProficiencyPresetOptions[0].label)
   const [selectedArmorPreset, setSelectedArmorPreset] = useState(armorProficiencyPresetOptions[0].label)
@@ -974,8 +976,9 @@ export function CharacterSheetPage({
                     canEdit={canConfigure}
                     key={ability.key}
                     label={ability.label}
-                    modifier={abilityModifier(draft.abilities[ability.key])}
+                    modifier={abilityModifier(draft.abilities[ability.key], exhaustionPenalty)}
                     onChange={(value) => patchAbility(ability.key, value)}
+                    penalized={hasExhaustionPenalty}
                     saveStatus={saveStatus}
                     value={draft.abilities[ability.key]}
                   />
@@ -994,16 +997,16 @@ export function CharacterSheetPage({
                   onTempChange={(value) => patch({ temporaryHp: value })}
                   temporary={draft.temporaryHp}
                 />
-                <CharacterStatBadge icon="initiative" label="Iniciativa" value={formatSigned(draft.initiativeBonus)} />
+                <CharacterStatBadge icon="initiative" label="Iniciativa" penalized={hasExhaustionPenalty} value={formatSigned(draft.initiativeBonus)} />
                 <CharacterStatBadge canEdit={canConfigure} icon="speed" label="Velocidad" onChange={(value) => patch({ speed: value })} suffix="ft" value={draft.speed} />
                 <CharacterStatBadge icon="proficiency" label="Competencia" value={formatSigned(draft.proficiencyBonus)} />
               </div>
 
               <h3 className="stat-row-title">Passive Scores</h3>
               <div className="passive-score-grid">
-                <CharacterStatBadge canEdit={canConfigure} icon="perception" label="Percepcion pasiva" onChange={(value) => patchPassiveScore('perception', value)} value={draft.passivePerception} />
-                <CharacterStatBadge canEdit={canConfigure} icon="perception" label="Investigation pasiva" onChange={(value) => patchPassiveScore('investigation', value)} value={draft.passiveInvestigation} />
-                <CharacterStatBadge canEdit={canConfigure} icon="perception" label="Insight pasiva" onChange={(value) => patchPassiveScore('insight', value)} value={draft.passiveInsight} />
+                <CharacterStatBadge canEdit={canConfigure} icon="perception" label="Percepcion pasiva" onChange={(value) => patchPassiveScore('perception', value)} penalized={hasExhaustionPenalty} value={draft.passivePerception} />
+                <CharacterStatBadge canEdit={canConfigure} icon="perception" label="Investigation pasiva" onChange={(value) => patchPassiveScore('investigation', value)} penalized={hasExhaustionPenalty} value={draft.passiveInvestigation} />
+                <CharacterStatBadge canEdit={canConfigure} icon="perception" label="Insight pasiva" onChange={(value) => patchPassiveScore('insight', value)} penalized={hasExhaustionPenalty} value={draft.passiveInsight} />
               </div>
 
               <h3 className="stat-row-title">Survival / Rest / Death</h3>
@@ -1045,7 +1048,7 @@ export function CharacterSheetPage({
                       <NumberInput
                         max={6}
                         min={0}
-                        onChange={(event) => patch({ exhaustion: Number(event.target.value) })}
+                        onChange={(event) => patchRecalculated({ exhaustion: Number(event.target.value) })}
                         value={draft.exhaustion}
                       />
                     ) : (
@@ -1075,6 +1078,7 @@ export function CharacterSheetPage({
                       key={save.ability}
                       label={abilityLabels[save.ability]}
                       onProficientChange={(value) => patchSavingThrow({ ...save, proficient: value })}
+                      penalized={hasExhaustionPenalty}
                       proficient={save.proficient}
                       subtitle="Saving throw"
                     />
@@ -1092,6 +1096,7 @@ export function CharacterSheetPage({
                       label={skillLabels[skill.name]}
                       onExpertiseChange={(value) => patchSkill({ ...skill, expertise: value })}
                       onProficientChange={(value) => patchSkill({ ...skill, proficient: value })}
+                      penalized={hasExhaustionPenalty}
                       proficient={skill.proficient}
                       subtitle={abilityLabels[skill.ability]}
                     />

@@ -75,7 +75,7 @@ describe('CharacterSheetPage', () => {
     expect(screen.getByRole('button', { name: /Reset Turn/i })).toBeInTheDocument()
     expect(screen.getByText('Plan del turno')).toBeInTheDocument()
     expect(screen.getAllByText('Free').length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: /Free Action/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Free Action/i })).not.toBeInTheDocument()
     expect(screen.getByText('Ataques')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Dodge/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Help/i })).not.toBeInTheDocument()

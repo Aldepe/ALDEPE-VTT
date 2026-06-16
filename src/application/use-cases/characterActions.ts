@@ -356,6 +356,9 @@ export interface TurnResourceSummary {
   attacksLimit: number
   attacksPending: number
   attacksRemaining: number
+  dashPending: boolean
+  movementAvailable: number
+  movementLimit: number
   movementPending: number
   spellSlotsPendingByLevel: Record<number, number>
 }
@@ -465,9 +468,9 @@ export function ListTurnActionOptionsByCostUseCase(character: Character, movemen
   const availableSpells = ListAvailableSpellsForActionUseCase(character)
   const consumeAction: TurnActionOption[] = [
     { id: 'attack', label: 'Attack', cost: 'action', costGroup: 'consumeAction', description: 'Elige uno de tus ataques.', mode: 'attack' },
-    { id: 'dash', label: 'Dash', cost: 'action', costGroup: 'consumeAction', description: 'Anade movimiento adicional.', action: makeBasicAction('Dash', 'action', 'Anade movimiento adicional este turno.') },
-    { id: 'disengage', label: 'Disengage', cost: 'action', costGroup: 'consumeAction', description: 'Evita ataques al moverte.', action: makeBasicAction('Disengage', 'action', 'Sales de alcance con cuidado.') },
-    { id: 'hide', label: 'Hide', cost: 'action', costGroup: 'consumeAction', description: 'Intentas ocultarte.', action: makeBasicAction('Hide', 'action', 'Busca cobertura y tira sigilo si aplica.') },
+    { id: 'dash', label: 'Dash', cost: 'action', costGroup: 'consumeAction', description: `Duplica tu movimiento del turno: ${character.speed} ft extra.`, action: makeBasicAction('Dash', 'action', `Duplica tu movimiento: este turno puedes moverte hasta ${character.speed * 2} ft si no habias gastado movimiento.`) },
+    { id: 'disengage', label: 'Disengage', cost: 'action', costGroup: 'consumeAction', description: 'Puedes abandonar el area de un enemigo sin que te ataque.', action: makeBasicAction('Disengage', 'action', 'Tu movimiento no provoca ataques de oportunidad durante el resto del turno.') },
+    { id: 'hide', label: 'Hide', cost: 'action', costGroup: 'consumeAction', description: 'Te escondes: haz un rol de Stealth/Sigilo.', action: makeBasicAction('Hide', 'action', 'Busca cobertura u oscuridad, tira Stealth/Sigilo y compara con percepcion pasiva o DC del DM.') },
     { id: 'object', label: 'Use Object', cost: 'action', costGroup: 'consumeAction', description: 'Manipulas un objeto importante.', action: makeBasicAction('Use an Object', 'action', 'Usas pocion, palanca, artefacto u objeto complejo.') },
   ]
 
@@ -501,16 +504,15 @@ export function ListTurnActionOptionsByCostUseCase(character: Character, movemen
         ]
       : [],
     freeAction: [
-      { id: 'free_interact', label: 'Free Action', cost: 'free', costGroup: 'freeAction', description: 'Hablar, soltar algo o hacer una interaccion menor.', action: makeBasicAction('Free Action', 'free', 'Accion libre: habla, senala, suelta algo o describe una interaccion menor.') },
       ...customActions.filter((option) => option.costGroup === 'freeAction'),
       ...featureOptions.filter((option) => option.costGroup === 'freeAction'),
       ...(hasFreeSpells ? [{ id: 'spell_free', label: 'Cast Free Spell', cost: 'free' as const, costGroup: 'freeAction' as const, description: 'Elige un spell configurado como Free Action.', mode: 'spell' as const }] : []),
     ],
     movement: [
       { id: 'move', label: 'Move', cost: 'movement', costGroup: 'movement', description: 'Reserva pies de movimiento.', movementCost, movementKind: 'move' },
-      { id: 'climb', label: 'Climb', cost: 'movement', costGroup: 'movement', description: 'Trepar usando movimiento.', movementCost, movementKind: 'climb' },
+      { id: 'climb', label: 'Climb', cost: 'movement', costGroup: 'movement', description: 'Trepa usando tu movimiento; el DM puede pedir Athletics si hay riesgo.', movementCost, movementKind: 'climb' },
       { id: 'swim', label: 'Swim', cost: 'movement', costGroup: 'movement', description: 'Nadar usando movimiento.', movementCost, movementKind: 'swim' },
-      { id: 'jump', label: 'Jump', cost: 'movement', costGroup: 'movement', description: 'Saltar una distancia pactada.', movementCost, movementKind: 'jump' },
+      { id: 'jump', label: 'Jump', cost: 'movement', costGroup: 'movement', description: 'Salta usando movimiento; declara distancia/altura y tira Athletics si el DM lo pide.', movementCost, movementKind: 'jump' },
       { id: 'stand', label: 'Stand up', cost: 'movement', costGroup: 'movement', description: 'Levantarte del suelo.', movementCost: Math.ceil(movementCost / 2), movementKind: 'stand' },
       ...customActions.filter((option) => option.costGroup === 'movement'),
       ...featureOptions.filter((option) => option.costGroup === 'movement'),
@@ -538,11 +540,23 @@ function countPendingCost(plan: CharacterTurnPlan, cost: ActionCost): number {
   return plan.items.filter((item) => item.costType === cost).reduce((sum, item) => sum + item.costAmount, 0)
 }
 
+function countPendingDash(plan: CharacterTurnPlan): number {
+  return plan.items.filter((item) => actionFlagForPlanItem(item) === 'dashSpent').length
+}
+
+export function GetTurnMovementLimitUseCase(character: Character, plan: CharacterTurnPlan): number {
+  const dashUses = (character.turnState.dashSpent ? 1 : 0) + countPendingDash(plan)
+  return character.speed * (1 + dashUses)
+}
+
 export function SummarizeTurnPlanResourcesUseCase(character: Character, plan: CharacterTurnPlan): TurnResourceSummary {
   const limits = GetTurnResourceLimitsUseCase(character)
   const actionPending = countPendingCost(plan, 'action')
   const bonusActionPending = countPendingCost(plan, 'bonusAction')
   const attacksPending = plan.items.filter((item) => item.type === 'attack').length
+  const movementLimit = GetTurnMovementLimitUseCase(character, plan)
+  const movementPending = plan.items.reduce((sum, item) => sum + (item.movementCost ?? 0), 0)
+  const movementAvailable = Math.max(0, movementLimit - character.turnState.movementSpent)
   const pendingSpellSlots = plan.items.reduce<Record<number, number>>((levels, item) => {
     if (item.type === 'spell' && item.spellSlotLevel) {
       levels[item.spellSlotLevel] = (levels[item.spellSlotLevel] ?? 0) + 1
@@ -571,7 +585,10 @@ export function SummarizeTurnPlanResourcesUseCase(character: Character, plan: Ch
     attacksLimit: limits.attacks,
     attacksPending,
     attacksRemaining: Math.max(0, limits.attacks - character.turnState.attacksSpent - attacksPending),
-    movementPending: plan.items.reduce((sum, item) => sum + (item.movementCost ?? 0), 0),
+    dashPending: countPendingDash(plan) > 0,
+    movementAvailable,
+    movementLimit,
+    movementPending,
     spellSlotsPendingByLevel: pendingSpellSlots,
   }
 }
@@ -598,7 +615,7 @@ export function ValidateTurnPlanUseCase(character: Character, plan: CharacterTur
   const reactionCost = countPendingCost(plan, 'reaction')
   const attackCount = plan.items.filter((item) => item.type === 'attack').length
   const movementCost = plan.items.reduce((sum, item) => sum + (item.movementCost ?? 0), 0)
-  const movementAvailable = Math.max(0, character.speed - character.turnState.movementSpent)
+  const movementAvailable = Math.max(0, GetTurnMovementLimitUseCase(character, plan) - character.turnState.movementSpent)
 
   if (actionCost > availableActionCount(character)) {
     errors.push('No puedes hacer Dash y Attack u otras opciones que consumen Action en el mismo turno.')
@@ -685,6 +702,7 @@ export function ComputeTurnPlanUseCase(character: Character, plan: CharacterTurn
   const attackItems = plan.items.filter((item) => item.type === 'attack')
   const nextTurnState = { ...character.turnState }
   const limits = GetTurnResourceLimitsUseCase(character)
+  const movementLimit = GetTurnMovementLimitUseCase(character, plan)
   const actionsSpent = Math.min(limits.actions, getSpentActions(character) + actionCost)
   const bonusActionsSpent = Math.min(limits.bonusActions, getSpentBonusActions(character) + bonusCost)
 
@@ -693,7 +711,7 @@ export function ComputeTurnPlanUseCase(character: Character, plan: CharacterTurn
   nextTurnState.actionSpent = actionsSpent >= limits.actions
   nextTurnState.bonusActionSpent = bonusActionsSpent >= limits.bonusActions
   nextTurnState.reactionSpent = character.turnState.reactionSpent || reactionCost > 0
-  nextTurnState.movementSpent = Math.min(character.speed, character.turnState.movementSpent + movementCost)
+  nextTurnState.movementSpent = Math.min(movementLimit, character.turnState.movementSpent + movementCost)
   nextTurnState.attacksSpent = Math.min(limits.attacks, character.turnState.attacksSpent + attackItems.length)
 
   plan.items.forEach((item) => {

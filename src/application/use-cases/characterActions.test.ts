@@ -11,6 +11,7 @@ import {
   RemoveTurnPlanItemsForDeletedActionUseCase,
   ResetTurnResourcesUseCase,
   SelectTurnActionUseCase,
+  SummarizeTurnPlanResourcesUseCase,
   ToggleCharacterFeatureUseCase,
   UndoLastComputedTurnUseCase,
   UseCharacterActionUseCase,
@@ -87,8 +88,43 @@ describe('character action use cases', () => {
 
     expect(actionLabels).toEqual(expect.arrayContaining(['Attack', 'Dash', 'Disengage', 'Hide', 'Use Object']))
     expect(actionLabels).not.toEqual(expect.arrayContaining(['Cast Spell', 'Dodge', 'Help', 'Ready', 'Search']))
-    expect(options.freeAction.map((option) => option.label)).toContain('Free Action')
+    expect(options.freeAction.map((option) => option.label)).not.toContain('Free Action')
     expect(options.movement.map((option) => option.label)).toEqual(expect.arrayContaining(['Move', 'Climb', 'Swim', 'Jump', 'Stand up']))
+  })
+
+  it('lets Dash double movement in the pending plan', () => {
+    const character = { ...createBlankCharacter('campaign', 'player'), speed: 30 }
+    const moveOnlyPlan = SelectTurnActionUseCase(CreateTurnPlanUseCase(character), {
+      movementCost: 45,
+      movementName: 'Move',
+      movementSummary: 'Move: 45 ft',
+    })
+    const dashOption = ListTurnActionOptionsByCostUseCase(character, character.speed).consumeAction.find((option) => option.id === 'dash')
+
+    expect(ValidateTurnPlanUseCase(character, moveOnlyPlan).status).toBe('invalid')
+    expect(dashOption?.description).toContain('Duplica')
+
+    if (!dashOption?.action) {
+      throw new Error('Dash option should include a basic action')
+    }
+
+    const dashPlan = SelectTurnActionUseCase(
+      SelectTurnActionUseCase(CreateTurnPlanUseCase(character), { action: dashOption.action }),
+      {
+        movementCost: 60,
+        movementName: 'Move',
+        movementSummary: 'Move: 60 ft',
+      },
+    )
+    const summary = SummarizeTurnPlanResourcesUseCase(character, dashPlan)
+    const result = ComputeTurnPlanUseCase(character, dashPlan)
+
+    expect(summary.dashPending).toBe(true)
+    expect(summary.movementLimit).toBe(60)
+    expect(summary.movementAvailable).toBe(60)
+    expect(ValidateTurnPlanUseCase(character, dashPlan).status).toBe('valid')
+    expect(result.character.turnState.dashSpent).toBe(true)
+    expect(result.character.turnState.movementSpent).toBe(60)
   })
 
   it('reflects feature resource bonuses in turn planning', () => {

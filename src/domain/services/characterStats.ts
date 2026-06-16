@@ -63,6 +63,10 @@ export function formatSigned(value: number): string {
   return value >= 0 ? `+${value}` : String(value)
 }
 
+export function exhaustionStatPenalty(exhaustion: number): number {
+  return Math.max(0, exhaustion) * 2
+}
+
 export function createDefaultSavingThrows(character: Pick<Character, 'abilities' | 'proficiencyBonus'>): SavingThrow[] {
   return (Object.keys(character.abilities) as AbilityKey[]).map((ability) => ({
     ability,
@@ -86,16 +90,18 @@ export function createDefaultSkills(character: Pick<Character, 'abilities' | 'pr
 
 export function recalculateCharacterBonuses(character: Character): Character {
   const proficiencyBonus = proficiencyBonusForLevel(character.level)
+  const statPenalty = exhaustionStatPenalty(character.exhaustion)
   const savingThrows = character.savingThrows.map((save) => ({
     ...save,
-    bonus: abilityModifier(character.abilities[save.ability]) + (save.proficient ? proficiencyBonus : 0),
+    bonus: abilityModifier(character.abilities[save.ability]) + (save.proficient ? proficiencyBonus : 0) - statPenalty,
   }))
   const skills = character.skills.map((skill) => ({
     ...skill,
     bonus:
       abilityModifier(character.abilities[skill.ability]) +
       (skill.proficient ? proficiencyBonus : 0) +
-      (skill.expertise ? proficiencyBonus : 0),
+      (skill.expertise ? proficiencyBonus : 0) -
+      statPenalty,
   }))
   const computedPassivePerception =
     10 + (skills.find((skill) => skill.name === 'perception')?.bonus ?? abilityModifier(character.abilities.wis))
@@ -110,7 +116,7 @@ export function recalculateCharacterBonuses(character: Character): Character {
     passivePerception: character.passiveOverrides?.perception ?? computedPassivePerception,
     passiveInvestigation: character.passiveOverrides?.investigation ?? computedPassiveInvestigation,
     passiveInsight: character.passiveOverrides?.insight ?? computedPassiveInsight,
-    initiativeBonus: abilityModifier(character.abilities.dex),
+    initiativeBonus: abilityModifier(character.abilities.dex) - statPenalty,
     spellcasting: character.spellcasting,
     savingThrows,
     skills,

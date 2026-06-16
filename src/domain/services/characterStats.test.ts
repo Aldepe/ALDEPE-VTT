@@ -32,4 +32,17 @@ describe('characterStats', () => {
     expect(recalculated.passivePerception).toBe(18)
     expect(recalculated.passiveInvestigation).toBe(12)
   })
+
+  it('applies exhaustion penalties to d20 stats and derived passives', () => {
+    const character = createBlankCharacter('campaign', 'player')
+    const recalculated = recalculateCharacterBonuses({
+      ...character,
+      exhaustion: 1,
+    })
+
+    expect(recalculated.savingThrows.find((save) => save.ability === 'str')?.bonus).toBe(-2)
+    expect(recalculated.skills.find((skill) => skill.name === 'acrobatics')?.bonus).toBe(-2)
+    expect(recalculated.initiativeBonus).toBe(-2)
+    expect(recalculated.passivePerception).toBe(8)
+  })
 })

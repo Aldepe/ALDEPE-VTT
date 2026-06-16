@@ -117,7 +117,6 @@ function optionIcon(option: TurnActionOption): LucideIcon {
     hide: Eye,
     object: Sparkles,
     feature: Zap,
-    free_interact: Sparkles,
     move: Footprints,
     climb: Footprints,
     swim: Footprints,
@@ -150,11 +149,12 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
   const [turnPlan, setTurnPlan] = useState(() => CreateTurnPlanUseCase(character, character.ownerUserId))
   const [selectionMode, setSelectionMode] = useState<SelectionMode>()
   const [selectionCost, setSelectionCost] = useState<ActionCost | undefined>()
-  const [movementDraft, setMovementDraft] = useState(10)
+  const [movementDraft, setMovementDraft] = useState(() => ({ baseSpeed: character.speed, feet: character.speed }))
   const [editingAttackId, setEditingAttackId] = useState<string | undefined>()
   const [editingActionId, setEditingActionId] = useState<string | undefined>()
   const [lastComputedCharacter, setLastComputedCharacter] = useState<Character | undefined>()
   const [feedback, setFeedback] = useState('Elige opciones para planificar tu turno.')
+  const movementDraftFeet = movementDraft.baseSpeed === character.speed ? movementDraft.feet : character.speed
 
   const resourceSummary = useMemo(() => SummarizeTurnPlanResourcesUseCase(character, turnPlan), [character, turnPlan])
   const previewValidation = useMemo(() => ValidateTurnPlanUseCase(character, turnPlan), [character, turnPlan])
@@ -163,8 +163,8 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
     () => preparedSpells.filter((spell) => !selectionCost || spell.castingTime === selectionCost),
     [preparedSpells, selectionCost],
   )
-  const actionOptionsByCost = useMemo(() => ListTurnActionOptionsByCostUseCase(character, movementDraft), [character, movementDraft])
-  const movementRemaining = Math.max(0, character.speed - character.turnState.movementSpent)
+  const actionOptionsByCost = useMemo(() => ListTurnActionOptionsByCostUseCase(character, movementDraftFeet), [character, movementDraftFeet])
+  const movementRemaining = Math.max(0, resourceSummary.movementAvailable - resourceSummary.movementPending)
   const sortedPlanItems = [...turnPlan.items].sort((left, right) => left.sortOrder - right.sortOrder)
 
   function addAttack() {
@@ -329,7 +329,7 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
           <article className={clsx('turn-resource-tile', resourceSummary.movementPending ? 'is-pending' : movementRemaining <= 0 ? 'is-spent' : 'is-ready')}>
             <Footprints size={26} aria-hidden="true" />
             <strong>Movement</strong>
-            <span>{Math.max(0, movementRemaining - resourceSummary.movementPending)} ft / {character.speed} ft</span>
+            <span>{movementRemaining} ft / {resourceSummary.movementLimit} ft{resourceSummary.dashPending ? ' (Dash)' : ''}</span>
           </article>
           <article className={clsx('turn-resource-tile', resourceClass(resourceSummary.bonusAction))}>
             <Sparkles size={26} aria-hidden="true" />
@@ -499,8 +499,11 @@ export function CharacterActionsPanel({ canEdit, character, onChange }: Characte
         </div>
         <label className="movement-planner-control">
           <span>Movimiento a planificar</span>
-          <NumberInput max={character.speed} min={0} onChange={(event) => setMovementDraft(Number(event.target.value))} value={movementDraft} />
+          <NumberInput max={resourceSummary.movementAvailable} min={0} onChange={(event) => setMovementDraft({ baseSpeed: character.speed, feet: Number(event.target.value) })} value={movementDraftFeet} />
           <small>ft</small>
+          <small className="movement-planner-hint">
+            Base {character.speed} ft{resourceSummary.dashPending ? ` - Dash activo: ${resourceSummary.movementLimit} ft disponibles` : ''}
+          </small>
         </label>
       </section>
 

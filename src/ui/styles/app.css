@@ -791,6 +791,22 @@ textarea:focus {
   background: linear-gradient(135deg, var(--cyan), var(--lime));
 }
 
+.ability-score-card.is-penalized,
+.character-stat-badge.is-penalized,
+.skill-badge.is-penalized {
+  border-color: rgba(255, 79, 96, 0.68);
+  box-shadow: 0 0 24px rgba(255, 79, 96, 0.18), inset 0 0 18px rgba(255, 79, 96, 0.06);
+}
+
+.ability-score-card.is-penalized .ability-modifier,
+.character-stat-badge.is-penalized strong,
+.skill-badge.is-penalized .skill-bonus {
+  border-color: rgba(255, 107, 122, 0.48);
+  color: #ff6b7a;
+  background: rgba(255, 79, 96, 0.1);
+  text-shadow: 0 0 12px rgba(255, 79, 96, 0.45);
+}
+
 .mini-save-state {
   color: var(--muted);
   font-size: 0.75rem;
@@ -1330,6 +1346,13 @@ textarea:focus {
   margin-top: 12px;
   color: var(--muted);
   font-weight: 800;
+}
+
+.movement-planner-hint {
+  grid-column: 1 / -1;
+  color: var(--gold);
+  font-size: 0.76rem;
+  line-height: 1.25;
 }
 
 .resource-spell-slot-list {

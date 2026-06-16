@@ -38,6 +38,7 @@ interface AbilityScoreCardProps {
   label: string
   modifier: string
   onChange: (value: number) => void
+  penalized?: boolean
   saveStatus: SaveStatus
   value: number
 }
@@ -58,9 +59,9 @@ function saveStatusLabel(status: SaveStatus): string {
   return 'Editable'
 }
 
-export function AbilityScoreCard({ ability, canEdit, label, modifier, onChange, saveStatus, value }: AbilityScoreCardProps) {
+export function AbilityScoreCard({ ability, canEdit, label, modifier, onChange, penalized = false, saveStatus, value }: AbilityScoreCardProps) {
   return (
-    <article className={clsx('ability-score-card', `ability-${ability}`)}>
+    <article className={clsx('ability-score-card', `ability-${ability}`, penalized && 'is-penalized')}>
       <StatIcon label={`Icono de ${label}`} type={ability} />
       <span className="ability-name">{label}</span>
       {canEdit ? (
@@ -88,13 +89,14 @@ interface CharacterStatBadgeProps {
   icon: StatIconType
   label: string
   onChange?: (value: number) => void
+  penalized?: boolean
   suffix?: string
   value: number | string
 }
 
-export function CharacterStatBadge({ canEdit = false, icon, label, onChange, suffix, value }: CharacterStatBadgeProps) {
+export function CharacterStatBadge({ canEdit = false, icon, label, onChange, penalized = false, suffix, value }: CharacterStatBadgeProps) {
   return (
-    <article className="character-stat-badge">
+    <article className={clsx('character-stat-badge', penalized && 'is-penalized')}>
       <StatIcon label={`Icono de ${label}`} type={icon} />
       <div>
         <span>{label}</span>
@@ -201,6 +203,7 @@ interface SkillBadgeProps {
   label: string
   onExpertiseChange?: (value: boolean) => void
   onProficientChange: (value: boolean) => void
+  penalized?: boolean
   proficient: boolean
   subtitle: string
 }
@@ -213,11 +216,12 @@ export function SkillBadge({
   label,
   onExpertiseChange,
   onProficientChange,
+  penalized,
   proficient,
   subtitle,
 }: SkillBadgeProps) {
   return (
-    <article className={clsx('skill-badge', proficient && 'is-proficient', expertise && 'is-expertise')}>
+    <article className={clsx('skill-badge', proficient && 'is-proficient', expertise && 'is-expertise', penalized && 'is-penalized')}>
       <StatIcon label={`Icono de ${subtitle}`} type={ability} />
       <div className="skill-badge-text">
         <strong>{label}</strong>
