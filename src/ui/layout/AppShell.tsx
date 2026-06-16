@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { BookOpen, CalendarDays, LogOut, Map, NotebookPen, Plus, Save, Shield, UserRound, UsersRound } from 'lucide-react'
+import { BookOpen, CalendarDays, LogOut, Map, NotebookPen, Plus, Save, Shield, Trash2, UserRound, UsersRound } from 'lucide-react'
 import clsx from 'clsx'
 import type { AudioSettings } from '@domain/entities/audio'
 import type { BrandingAssets } from '@domain/entities/branding'
@@ -24,6 +24,7 @@ interface AppShellProps {
   mode: 'local-demo' | 'supabase'
   onAssignCharacter: (characterId: string, ownerUserId: string) => Promise<void>
   onCreateCharacter: (ownerUserId: string) => Promise<void>
+  onDeleteCharacter: (characterId: string) => Promise<void>
   onSetVolume: (volume: number) => Promise<void>
   onSelectCharacter: (characterId: string) => void
   onSignOut: () => void
@@ -70,6 +71,7 @@ export function AppShell({
   mode,
   onAssignCharacter,
   onCreateCharacter,
+  onDeleteCharacter,
   onSetVolume,
   onSelectCharacter,
   onSignOut,
@@ -145,6 +147,17 @@ export function AppShell({
                 <button className="ghost-button" onClick={() => onAssignCharacter(selectedCharacterId, ownerUserId)} type="button">
                   <UsersRound size={15} aria-hidden="true" />
                   Asignar
+                </button>
+              ) : null}
+              {selectedCharacterId ? (
+                <button
+                  aria-label="Borrar ficha activa"
+                  className="ghost-button danger-button"
+                  onClick={() => onDeleteCharacter(selectedCharacterId)}
+                  type="button"
+                >
+                  <Trash2 size={15} aria-hidden="true" />
+                  Borrar
                 </button>
               ) : null}
             </div>

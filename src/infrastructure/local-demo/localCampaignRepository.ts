@@ -26,6 +26,7 @@ import {
   withToken,
   withTurnOrder,
   withoutBattleArea,
+  withoutCharacterCascade,
   withoutInventoryContainer,
   withoutInventoryItem,
   withoutNote,
@@ -162,6 +163,10 @@ export class LocalCampaignRepository implements CampaignRepository {
   async saveCharacter(character: Character): Promise<Character> {
     persistWorkspace(withCharacter(readWorkspace(), character))
     return character
+  }
+
+  async deleteCharacter(characterId: ID): Promise<void> {
+    persistWorkspace(withoutCharacterCascade(readWorkspace(), characterId))
   }
 
   async saveSession(session: TimelineSession): Promise<TimelineSession> {

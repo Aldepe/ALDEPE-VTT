@@ -22,6 +22,41 @@ export function withCharacter(workspace: CampaignWorkspace, character: Character
   return { ...workspace, characters: replaceById(workspace.characters, character) }
 }
 
+export function withoutCharacterCascade(workspace: CampaignWorkspace, characterId: ID): CampaignWorkspace {
+  const removedTokenIds = new Set(
+    workspace.tokens
+      .filter((token) => token.ownerCharacterId === characterId || token.characterId === characterId)
+      .map((token) => token.id),
+  )
+
+  return {
+    ...workspace,
+    members: workspace.members.map((member) =>
+      member.characterId === characterId ? { ...member, characterId: undefined } : member,
+    ),
+    characters: removeById(workspace.characters, characterId),
+    inventoryContainers: workspace.inventoryContainers.filter((container) => container.characterId !== characterId),
+    inventoryItems: workspace.inventoryItems.filter((item) => item.characterId !== characterId),
+    tokens: workspace.tokens.filter((token) => !removedTokenIds.has(token.id)),
+    notes: workspace.notes.map((note) => ({
+      ...note,
+      linkedCharacterIds: note.linkedCharacterIds.filter((linkedCharacterId) => linkedCharacterId !== characterId),
+    })),
+    turnOrders: workspace.turnOrders.map((turnOrder) => {
+      const entries = turnOrder.entries.filter((entry) => {
+        const entryTokenId = entry.tokenId ?? (entry.id.startsWith('turn_') ? entry.id.slice(5) : undefined)
+        return !entryTokenId || !removedTokenIds.has(entryTokenId)
+      })
+
+      return {
+        ...turnOrder,
+        entries,
+        currentIndex: entries.length ? Math.min(turnOrder.currentIndex, entries.length - 1) : 0,
+      }
+    }),
+  }
+}
+
 export function withCampaignMember(workspace: CampaignWorkspace, member: CampaignMember): CampaignWorkspace {
   return { ...workspace, members: replaceById(workspace.members, member) }
 }

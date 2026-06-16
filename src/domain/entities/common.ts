@@ -27,7 +27,7 @@ export interface CampaignMember {
   userId: ID
   role: CampaignRole
   displayName: string
-  characterId?: ID
+  characterId?: ID | null
   canDrawOnMap: boolean
 }
 

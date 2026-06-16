@@ -179,11 +179,49 @@ export class SupabaseCampaignRepository implements CampaignRepository {
   }
 
   async saveCampaignMember(member: CampaignMember): Promise<CampaignMember> {
-    return this.upsert('campaign_members', member)
+    return this.upsert('campaign_members', { ...member, characterId: member.characterId ?? null })
   }
 
   async saveCharacter(character: Character): Promise<Character> {
     return this.upsert('characters', character)
+  }
+
+  async deleteCharacter(characterId: ID): Promise<void> {
+    const [ownerTokensResult, characterTokensResult] = await Promise.all([
+      this.client.from('tokens').select('id').eq('ownerCharacterId', characterId),
+      this.client.from('tokens').select('id').eq('characterId', characterId),
+    ])
+
+    if (ownerTokensResult.error) {
+      throw new Error(ownerTokensResult.error.message)
+    }
+
+    if (characterTokensResult.error) {
+      throw new Error(characterTokensResult.error.message)
+    }
+
+    const tokenIds = Array.from(
+      new Set(
+        [...(ownerTokensResult.data ?? []), ...(characterTokensResult.data ?? [])].map((token) => (token as { id: ID }).id),
+      ),
+    )
+
+    if (tokenIds.length) {
+      const { error: tokenError } = await this.client.from('tokens').delete().in('id', tokenIds)
+      if (tokenError) {
+        throw new Error(tokenError.message)
+      }
+    }
+
+    const { error: memberError } = await this.client
+      .from('campaign_members')
+      .update({ characterId: null })
+      .eq('characterId', characterId)
+    if (memberError) {
+      throw new Error(memberError.message)
+    }
+
+    await this.deleteById('characters', characterId)
   }
 
   async saveSession(session: TimelineSession): Promise<TimelineSession> {

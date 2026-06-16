@@ -30,6 +30,7 @@ import {
   withSession,
   withToken,
   withTurnOrder,
+  withoutCharacterCascade,
   withoutLoreEntry,
   withoutBattleArea,
   withoutInventoryContainer,
@@ -254,6 +255,63 @@ export default function App() {
     })
   }
 
+  async function deleteCharacter(characterId: string) {
+    if (!workspace || !isDm(viewerMember)) {
+      return
+    }
+
+    const character = workspace.characters.find((candidate) => candidate.id === characterId)
+    if (!character) {
+      return
+    }
+
+    if (!window.confirm(`Borrar ficha "${character.name}"? Se eliminarán también sus tokens, inventario y vínculos.`)) {
+      return
+    }
+
+    const linkedTokenIds = new Set(
+      workspace.tokens
+        .filter((token) => token.ownerCharacterId === characterId || token.characterId === characterId)
+        .map((token) => token.id),
+    )
+    const nextWorkspace = withoutCharacterCascade(workspace, characterId)
+    const nextSelectedCharacterId = nextWorkspace.characters.some(
+      (candidate) => candidate.id === selectedCharacterId && canViewCharacter(viewerMember, candidate),
+    )
+      ? selectedCharacterId
+      : nextWorkspace.characters.find((candidate) => canViewCharacter(viewerMember, candidate))?.id
+    const turnOrdersToSave = nextWorkspace.turnOrders.filter((turnOrder) =>
+      workspace.turnOrders
+        .find((previousTurnOrder) => previousTurnOrder.id === turnOrder.id)
+        ?.entries.some((entry) => {
+          const entryTokenId = entry.tokenId ?? (entry.id.startsWith('turn_') ? entry.id.slice(5) : undefined)
+          return Boolean(entryTokenId && linkedTokenIds.has(entryTokenId))
+        }),
+    )
+    const membersToClear = workspace.members
+      .filter((member) => member.characterId === characterId)
+      .map((member) => ({ ...member, characterId: null }))
+
+    setWorkspace(nextWorkspace)
+    setSelectedCharacterId(nextSelectedCharacterId)
+    await persist(async () => {
+      for (const turnOrder of turnOrdersToSave) {
+        await repositories.campaign.saveTurnOrder(turnOrder)
+      }
+
+      for (const tokenId of linkedTokenIds) {
+        await repositories.campaign.deleteToken(tokenId)
+      }
+
+      for (const member of membersToClear) {
+        await repositories.campaign.saveCampaignMember(member)
+      }
+
+      await repositories.campaign.deleteCharacter(characterId)
+      return characterId
+    })
+  }
+
   async function saveSession(sessionEntry: TimelineSession) {
     setWorkspace((current) => (current ? withSession(current, sessionEntry) : current))
     await persist(() => repositories.campaign.saveSession(sessionEntry))
@@ -393,6 +451,7 @@ export default function App() {
       mode={repositories.mode}
       onAssignCharacter={assignCharacterToPlayer}
       onCreateCharacter={createCharacterForPlayer}
+      onDeleteCharacter={deleteCharacter}
       onSetVolume={setVolume}
       onSelectCharacter={setSelectedCharacterId}
       onSignOut={handleSignOut}

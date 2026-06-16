@@ -297,6 +297,14 @@ export function BattlemapPage({
     await onSaveMap({ ...nextMap, isActive: false })
   }
 
+  async function updateMapName(name: string) {
+    if (!map) {
+      return
+    }
+
+    await onSaveMap({ ...map, name, background: { ...map.background, alt: map.background.alt || name } })
+  }
+
   async function updateGridColumns(columns: number) {
     if (!map) {
       return
@@ -870,9 +878,12 @@ export function BattlemapPage({
           {isEditingMap && sidePanel === 'map' ? (
             <section className="map-settings-panel" aria-label="Grid del mapa">
               <div className="panel-heading">
-                <h3>Grid</h3>
+                <h3>Mapa</h3>
                 <span>{gridColumns} x {gridRows}</span>
               </div>
+              <Field label="Nombre del mapa">
+                <TextInput onChange={(event) => void updateMapName(event.target.value)} value={map.name} />
+              </Field>
               <Field label="Capa activa">
                 <SelectInput onChange={(event) => selectPlacementLayer(event.target.value as PlacementLayer)} value={placementLayer}>
                   {placementLayers.map((layer) => (
