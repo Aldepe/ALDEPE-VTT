@@ -6,6 +6,8 @@ export type RealtimeEventName =
   | 'notes'
   | 'characters'
   | 'timeline_sessions'
+  | 'quests'
+  | 'lore_entries'
   | 'character_actions'
   | 'character_attacks'
   | 'character_features'

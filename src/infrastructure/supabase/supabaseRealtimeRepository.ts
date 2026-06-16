@@ -8,6 +8,8 @@ const realtimeTables: RealtimeEventName[] = [
   'notes',
   'characters',
   'timeline_sessions',
+  'quests',
+  'lore_entries',
   'character_actions',
   'character_attacks',
   'character_features',
@@ -32,6 +34,17 @@ const realtimeTables: RealtimeEventName[] = [
   'inventory_items',
 ]
 
+const campaignScopedTables = new Set<RealtimeEventName>([
+  'campaign_members',
+  'maps',
+  'notes',
+  'characters',
+  'timeline_sessions',
+  'quests',
+  'lore_entries',
+  'battlemap_areas',
+])
+
 export class SupabaseRealtimeRepository implements RealtimeRepository {
   private readonly client: SupabaseClient
 
@@ -49,6 +62,7 @@ export class SupabaseRealtimeRepository implements RealtimeRepository {
           event: '*',
           schema: 'public',
           table,
+          ...(campaignScopedTables.has(table) ? { filter: `campaignId=eq.${campaignId}` } : {}),
         },
         () => onChange(table),
       )

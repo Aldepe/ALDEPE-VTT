@@ -58,6 +58,10 @@ function getVisibleMember(workspace: CampaignWorkspace | null, session: AuthSess
   return findMemberByUserId(workspace.members, session.profile.id) ?? workspace.members.find((member) => member.role === session.preferredRole)
 }
 
+interface LoadWorkspaceOptions {
+  silent?: boolean
+}
+
 export default function App() {
   const repositories = useMemo(() => createAppRepositories(), [])
   const branding = useMemo(() => LoadBrandingAssetsUseCase(repositories.branding), [repositories.branding])
@@ -77,6 +81,7 @@ export default function App() {
     visibleCharacters.find((character) => character.id === viewerMember?.characterId) ??
     visibleCharacters.find((character) => character.ownerUserId === viewerMember?.userId) ??
     visibleCharacters[0]
+  const campaignId = workspace?.campaign.id
 
   useEffect(() => {
     document.body.style.setProperty('--app-background-layer', `url("${branding.backgroundPath}") center / cover fixed`)
@@ -87,8 +92,10 @@ export default function App() {
   }, [branding.backgroundPath])
 
   const loadWorkspace = useCallback(
-    async (nextSession: AuthSession) => {
-      setLoadStatus('loading')
+    async (nextSession: AuthSession, options: LoadWorkspaceOptions = {}) => {
+      if (!options.silent) {
+        setLoadStatus('loading')
+      }
       setError(null)
 
       try {
@@ -104,7 +111,9 @@ export default function App() {
         setLoadStatus('ready')
       } catch (workspaceError) {
         setError(workspaceError instanceof Error ? workspaceError.message : 'No se pudo cargar la campaña')
-        setLoadStatus('error')
+        if (!options.silent) {
+          setLoadStatus('error')
+        }
       }
     },
     [repositories.campaign],
@@ -154,14 +163,23 @@ export default function App() {
   }, [repositories.audio])
 
   useEffect(() => {
-    if (!workspace || !session) {
+    if (!campaignId || !session) {
       return undefined
     }
 
-    return repositories.realtime.subscribeToCampaign(workspace.campaign.id, () => {
-      void loadWorkspace(session)
+    let reloadTimer: number | undefined
+    const unsubscribe = repositories.realtime.subscribeToCampaign(campaignId, () => {
+      window.clearTimeout(reloadTimer)
+      reloadTimer = window.setTimeout(() => {
+        void loadWorkspace(session, { silent: true })
+      }, 750)
     })
-  }, [loadWorkspace, repositories.realtime, session, workspace])
+
+    return () => {
+      window.clearTimeout(reloadTimer)
+      unsubscribe()
+    }
+  }, [campaignId, loadWorkspace, repositories.realtime, session])
 
   async function handleAuth(credentials: AuthCredentials, mode: 'sign-in' | 'sign-up') {
     setLoadStatus('loading')
