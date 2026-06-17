@@ -202,6 +202,9 @@ small {
 .tab-button,
 .ghost-button,
 .primary-button,
+.primary-action,
+.success-action,
+.danger-action,
 .icon-button,
 .segmented button {
   border: var(--arcane-border);
@@ -309,7 +312,10 @@ small {
 }
 
 .ghost-button,
-.primary-button {
+.primary-button,
+.primary-action,
+.success-action,
+.danger-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -318,7 +324,8 @@ small {
   padding: 9px 13px;
 }
 
-.primary-button {
+.primary-button,
+.primary-action {
   border-color: rgba(34, 240, 200, 0.78);
   color: var(--text);
   background:
@@ -329,16 +336,39 @@ small {
   box-shadow: 0 0 24px rgba(34, 240, 200, 0.28), inset 0 0 18px rgba(255, 255, 255, 0.16);
 }
 
+.success-action {
+  border-color: rgba(184, 255, 98, 0.68);
+  color: #edffd6;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(184, 255, 98, 0.22), transparent 42%),
+    rgba(44, 76, 28, 0.32);
+  font-weight: 850;
+  box-shadow: 0 0 18px rgba(184, 255, 98, 0.12), inset 0 0 18px rgba(184, 255, 98, 0.08);
+}
+
+.danger-action {
+  border-color: rgba(255, 106, 120, 0.58);
+  color: #ffe2e8;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255, 106, 120, 0.24), transparent 42%),
+    rgba(96, 22, 42, 0.34);
+  font-weight: 850;
+  box-shadow: 0 0 18px rgba(255, 106, 120, 0.12), inset 0 0 18px rgba(255, 106, 120, 0.08);
+}
+
 .ghost-button:hover,
 .icon-button:hover,
 .tab-button:hover,
-.segmented button:hover {
+.segmented button:hover,
+.success-action:hover,
+.danger-action:hover {
   border-color: rgba(247, 230, 111, 0.72);
   box-shadow: var(--glow-gold), inset 0 0 16px rgba(247, 230, 111, 0.05);
   transform: translateY(-1px);
 }
 
-.primary-button:hover {
+.primary-button:hover,
+.primary-action:hover {
   filter: saturate(1.2) brightness(1.07);
   box-shadow: 0 0 34px rgba(34, 240, 200, 0.38), 0 0 26px rgba(255, 79, 163, 0.22), inset 0 0 20px rgba(255, 255, 255, 0.25);
   transform: translateY(-1px);
@@ -346,10 +376,23 @@ small {
 
 .ghost-button:active,
 .primary-button:active,
+.primary-action:active,
+.success-action:active,
+.danger-action:active,
 .icon-button:active,
 .tab-button:active,
 .segmented button:active {
   transform: translateY(1px) scale(0.99);
+}
+
+.primary-action:disabled,
+.success-action:disabled,
+.danger-action:disabled,
+.ghost-button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.45);
+  opacity: 0.54;
+  transform: none;
 }
 
 .icon-button {
@@ -2848,12 +2891,14 @@ textarea:focus {
 
 .dossier-cells,
 .dossier-section,
+.dossier-game,
 .dossier-clocks,
 .dossier-investigation,
 .dossier-daily {
   padding: 16px;
 }
 
+.dossier-game,
 .dossier-clocks,
 .dossier-investigation,
 .dossier-daily {
@@ -2866,6 +2911,197 @@ textarea:focus {
   margin: 0;
   color: var(--muted);
   line-height: 1.45;
+}
+
+.dossier-game-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dossier-status-card,
+.dossier-operation-card,
+.dossier-day-event,
+.dossier-session-log {
+  min-width: 0;
+  border: 1px solid rgba(34, 240, 200, 0.24);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 0 0, rgba(34, 240, 200, 0.12), transparent 34%),
+    rgba(255, 255, 255, 0.045);
+}
+
+.dossier-status-card {
+  display: grid;
+  gap: 7px;
+  padding: 13px;
+}
+
+.dossier-status-card svg {
+  color: var(--cyan);
+}
+
+.dossier-status-card span,
+.dossier-event-heading span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.dossier-status-card strong {
+  color: var(--text);
+  font-size: clamp(1.45rem, 2vw, 2.1rem);
+  line-height: 1;
+}
+
+.dossier-status-card p,
+.dossier-operation-card p,
+.dossier-day-event p,
+.dossier-session-log li {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.dossier-status-card.heat-4,
+.dossier-status-card.heat-5,
+.dossier-status-card.heat-6 {
+  border-color: rgba(255, 106, 120, 0.48);
+  box-shadow: 0 0 22px rgba(255, 106, 120, 0.1);
+}
+
+.dossier-status-card.heat-4 svg,
+.dossier-status-card.heat-5 svg,
+.dossier-status-card.heat-6 svg,
+.dossier-status-card.heat-4 strong,
+.dossier-status-card.heat-5 strong,
+.dossier-status-card.heat-6 strong {
+  color: var(--danger);
+}
+
+.dossier-operation-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 13px;
+  padding: 14px;
+  border-color: rgba(255, 79, 163, 0.3);
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 79, 163, 0.14), transparent 34%),
+    rgba(5, 8, 18, 0.64);
+}
+
+.dossier-operation-card h4,
+.dossier-event-heading h4,
+.dossier-session-log h4 {
+  margin: 0;
+}
+
+.dossier-operation-roll {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 79, 163, 0.52);
+  border-radius: 8px;
+  color: #ffd5e7;
+  background: rgba(255, 79, 163, 0.12);
+  font-size: 1.12rem;
+  font-weight: 950;
+  box-shadow: 0 0 18px rgba(255, 79, 163, 0.12);
+}
+
+.dossier-day-controls,
+.dossier-choice-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+}
+
+.dossier-day-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dossier-day-event {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+}
+
+.dossier-day-event.is-success {
+  border-color: rgba(184, 255, 98, 0.46);
+  box-shadow: 0 0 20px rgba(184, 255, 98, 0.09);
+}
+
+.dossier-day-event.is-failure {
+  border-color: rgba(255, 106, 120, 0.48);
+  box-shadow: 0 0 20px rgba(255, 106, 120, 0.1);
+}
+
+.dossier-event-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.dossier-result-chip {
+  align-self: start;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 5px 8px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.dossier-result-chip.is-success {
+  border-color: rgba(184, 255, 98, 0.5);
+  color: #edffd6;
+  background: rgba(184, 255, 98, 0.1);
+}
+
+.dossier-result-chip.is-failure {
+  border-color: rgba(255, 106, 120, 0.52);
+  color: #ffe2e8;
+  background: rgba(255, 106, 120, 0.12);
+}
+
+.dossier-session-log {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-color: rgba(247, 230, 111, 0.26);
+  background:
+    radial-gradient(circle at 100% 0, rgba(247, 230, 111, 0.12), transparent 36%),
+    rgba(5, 8, 18, 0.64);
+}
+
+.panel-heading.compact {
+  align-items: center;
+}
+
+.dossier-session-log ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.dossier-session-log li.is-success {
+  color: #edffd6;
+}
+
+.dossier-session-log li.is-failure {
+  color: #ffe2e8;
+}
+
+.dossier-session-log li.is-day {
+  color: #fff7c4;
 }
 
 .dossier-clock-grid {
@@ -4233,6 +4469,8 @@ textarea:focus {
   }
 
   .dossier-metrics,
+  .dossier-game-board,
+  .dossier-day-grid,
   .dossier-cell-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4310,6 +4548,8 @@ textarea:focus {
   }
 
   .dossier-metrics,
+  .dossier-game-board,
+  .dossier-day-grid,
   .dossier-clock-grid,
   .dossier-discovery-grid,
   .dossier-cell-grid,
@@ -4331,6 +4571,8 @@ textarea:focus {
   .dual-list,
   .demo-actions,
   .dossier-item-heading,
+  .dossier-event-heading,
+  .dossier-operation-card,
   .dossier-discovery-heading,
   .dossier-daily-card {
     grid-template-columns: 1fr;

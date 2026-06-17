@@ -3,7 +3,6 @@ export interface DossierMetric {
   value: string
   detail: string
 }
-
 export interface DossierFact {
   label: string
   value: string
@@ -90,7 +89,7 @@ export const bloodOfBhaalDossier = {
   premise:
     'La Sangre de Bhaal no controla Phandalin como un ejército. Lo controla como una infección pequeña, paciente y bien escondida: favores, miedo, rutas discretas, negocios tapadera y gente vulnerable usada como ojos.',
   doctrine:
-    'Su filosofía sostiene que la vida racional ha convertido el mundo en una fábrica de sufrimiento consciente. No buscan gobernar el pueblo; quieren mantenerlo estable, medible y dócil hasta que Nezznar termine de extraer materiales y fabricar artefactos en la Cueva del Eco.',
+    'Su filosofía sostiene que la vida racional ha convertido el mundo en una fábrica de sufrimiento consciente. No buscan gobernar el pueblo; quieren mantenerlo estable, medible y dócil hasta que El Mata Osos termine de extraer materiales y fabricar artefactos en la Cueva del Eco.',
   metrics: [
     { label: 'Núcleo real', value: '5-7', detail: 'Rogues con magia de sangre y juramento directo a Bhaal.' },
     { label: 'Colaboradores', value: '10-14', detail: 'Deudores, matones, informantes pagados y gente chantajeada.' },
@@ -180,7 +179,7 @@ export const bloodOfBhaalDossier = {
       difficulty: 'DC 13-15',
       goal: 'Que el grupo entienda que hay ojos baratos por la ciudad sin revelar aún la secta.',
       fields: [
-        { label: 'No sabe', value: 'Bhaal, Nezznar, mansión' },
+        { label: 'No sabe', value: 'Bhaal, El Mata Osos, mansión' },
         { label: 'Sí sabe', value: 'Quién le paga, dónde deja marcas' },
         { label: 'Riesgo', value: 'Si lo asustan, corre hacia una ruta preparada' },
       ],
@@ -516,7 +515,7 @@ export const bloodOfBhaalDossier = {
       id: 'two-assassins',
       category: 'agents',
       title: 'Los dos asesinos de la facción',
-      trigger: 'Cuando el grupo expone dos piezas de la red, Nezznar autoriza una eliminación limpia.',
+      trigger: 'Cuando el grupo expone dos piezas de la red, El Mata Osos autoriza una eliminación limpia.',
       setup:
         'No hay muchos asesinos en la ciudad: solo dos. Son cuidadosos, filosóficos y prefieren aislar antes que pelear contra todo el grupo.',
       challengeKind: 'Combate / contraemboscada',
@@ -744,7 +743,7 @@ export const bloodOfBhaalDossier = {
       pressure: 'Mueven dinero, justifican cargamentos y esconden pagos como deudas comerciales.',
       fields: [
         { label: 'Cobertura', value: 'Facturas, portes y reclamaciones' },
-        { label: 'Objetivo', value: 'Borrar vínculos con Nezznar' },
+        { label: 'Objetivo', value: 'Borrar vínculos con El Mata Osos' },
         { label: 'Punto débil', value: 'Libros contables demasiado perfectos' },
       ],
     },
@@ -946,7 +945,7 @@ export const bloodOfBhaalDossier = {
             'Caja de hierro con compartimento doble: registro auténtico si el reloj llegó al máximo, copia si aún está en tránsito.',
             'Libro de observación con nombres de players, rutas, heridas y preguntas hechas en Phandalin.',
             'Tres identidades limpias para mover a un agente fuera del pueblo.',
-            'Plano incompleto de la Cueva del Eco con marcas de extracción de Nezznar.',
+            'Plano incompleto de la Cueva del Eco con marcas de extracción de El Mata Osos.',
           ],
           security: [
             'Arcana DC 15 para notar que la tinta del escritorio se oscurece cerca de sangre reciente.',
@@ -985,7 +984,7 @@ export const bloodOfBhaalDossier = {
         {
           title: 'Ciclo diario',
           detail:
-            'Cada día tiene cuatro ventanas. Amanecer: revisión de marcas y alijos. Mediodía: recados comerciales. Atardecer: palomar interior. Medianoche: solo crisis o mensaje de Nezznar.',
+            'Cada día tiene cuatro ventanas. Amanecer: revisión de marcas y alijos. Mediodía: recados comerciales. Atardecer: palomar interior. Medianoche: solo crisis o mensaje de El Mata Osos.',
           fields: [
             { label: 'Amanecer', value: 'Tiza y cierres revisados' },
             { label: 'Mediodía', value: 'Recados con facturas falsas' },
@@ -1096,7 +1095,7 @@ export const bloodOfBhaalDossier = {
             'La Sangre de Bhaal usa a los Anillos de Bronce y pequeños matones para que todo parezca bandolerismo, deudas o broncas del Sleeping Giant.',
           fields: [
             { label: 'Cara pública', value: 'Anillos de Bronce' },
-            { label: 'Orden real', value: 'Nezznar por intermediarios' },
+            { label: 'Orden real', value: 'El Mata Osos por intermediarios' },
             { label: 'Fallo visible', value: 'Los pagos no siguen patrón local' },
           ],
           clues: [
@@ -1190,7 +1189,7 @@ export const bloodOfBhaalDossier = {
           fields: [
             { label: 'Motivo', value: 'Chantaje por deuda familiar' },
             { label: 'Sabe', value: 'Palomar interior y dos recaderos' },
-            { label: 'No sabe', value: 'Nezznar, Bhaal, Cueva del Eco' },
+            { label: 'No sabe', value: 'El Mata Osos, Bhaal, Cueva del Eco' },
           ],
           clues: [
             'Tiene las uñas manchadas de cera negra.',
@@ -1437,7 +1436,7 @@ export const bloodOfBhaalDossier = {
             { label: 'Colaborador', value: '1 señal, 1 contacto' },
             { label: 'Recadero', value: '2 rutas, 1 alijo menor' },
             { label: 'Iniciado', value: 'Célula, palomar, piso de emergencia' },
-            { label: 'Núcleo', value: 'Nezznar por símbolo, no por rostro' },
+            { label: 'Núcleo', value: 'El Mata Osos por símbolo, no por rostro' },
           ],
           dmNotes: [
             'Si un player pregunta algo que el agente no sabe, responde con miedo real y detalles erróneos, no con silencio artificial.',
@@ -1500,7 +1499,7 @@ export const bloodOfBhaalDossier = {
           clues: [
             'El símbolo de gota partida aparece en un foco ritual.',
             'Un iniciado habla de "terminar el sufrimiento racional".',
-            'Un palomar conecta a Phandalin con rutas externas y Nezznar.',
+            'Un palomar conecta a Phandalin con rutas externas y El Mata Osos.',
             'Un documento muestra que Iarno fue buscado por la Alianza, pero alguien borró su rastro.',
           ],
           consequences: [
