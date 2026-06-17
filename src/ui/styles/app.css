@@ -2494,6 +2494,39 @@ textarea:focus {
   padding-top: 14px;
 }
 
+.detail-field-matrix {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.matrix-field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid rgba(34, 240, 200, 0.22);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background:
+    radial-gradient(circle at 12% 0, rgba(34, 240, 200, 0.13), transparent 44%),
+    rgba(5, 8, 18, 0.72);
+}
+
+.matrix-field span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.matrix-field strong {
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 .link-list {
   display: flex;
   flex-wrap: wrap;
@@ -2526,6 +2559,12 @@ textarea:focus {
   margin: 0;
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+.lore-editor-matrix {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .player-visibility-picker,
@@ -2658,6 +2697,141 @@ textarea:focus {
   display: grid;
   gap: 9px;
   margin-top: 12px;
+}
+
+.dossier-mini-facts,
+.dossier-fact-grid {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.dossier-mini-facts {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.dossier-fact-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.dossier-mini-facts div,
+.dossier-fact-grid div {
+  min-width: 0;
+  border: 1px solid rgba(34, 240, 200, 0.2);
+  border-radius: 8px;
+  padding: 8px 9px;
+  background: rgba(34, 240, 200, 0.055);
+}
+
+.dossier-mini-facts dt,
+.dossier-fact-grid dt {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.dossier-mini-facts dd,
+.dossier-fact-grid dd {
+  margin: 3px 0 0;
+  color: var(--text);
+  font-size: 0.88rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.dossier-workspace {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.dossier-view-tabs {
+  padding-bottom: 2px;
+}
+
+.dossier-active-panel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.dossier-active-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  gap: 16px;
+  align-items: end;
+  border: 1px solid rgba(255, 79, 163, 0.22);
+  border-radius: 8px;
+  padding: 14px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 79, 163, 0.15), transparent 36%),
+    rgba(5, 8, 18, 0.68);
+}
+
+.dossier-active-heading p:last-child {
+  margin: 0;
+  color: var(--muted);
+}
+
+.dossier-detail-list {
+  display: grid;
+  gap: 12px;
+}
+
+.dossier-detail-card {
+  border-color: rgba(34, 240, 200, 0.24);
+  background:
+    radial-gradient(circle at 0 0, rgba(34, 240, 200, 0.1), transparent 34%),
+    rgba(255, 255, 255, 0.045);
+}
+
+.dossier-detail-card.is-reviewed {
+  border-color: rgba(184, 255, 98, 0.42);
+  box-shadow: 0 0 18px rgba(184, 255, 98, 0.09);
+}
+
+.dossier-item-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.dossier-detail-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.dossier-detail-block {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(5, 8, 18, 0.56);
+}
+
+.dossier-detail-block summary {
+  cursor: pointer;
+  padding: 9px 10px;
+  color: var(--cyan);
+  font-size: 0.8rem;
+  font-weight: 850;
+  list-style-position: inside;
+  text-transform: uppercase;
+}
+
+.dossier-detail-block ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0 12px 12px 26px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.dossier-detail-block li {
+  padding-left: 2px;
 }
 
 .segmented {
@@ -3656,6 +3830,7 @@ textarea:focus {
   .timeline-page,
   .lore-page,
   .dossier-section-grid,
+  .dossier-active-heading,
   .dossier-intro,
   .notes-page,
   .battle-layout {
@@ -3740,12 +3915,14 @@ textarea:focus {
   }
 
   .dossier-metrics,
-  .dossier-cell-grid {
+  .dossier-cell-grid,
+  .lore-editor-matrix {
     grid-template-columns: 1fr;
   }
 
   .dual-list,
-  .demo-actions {
+  .demo-actions,
+  .dossier-item-heading {
     grid-template-columns: 1fr;
   }
 

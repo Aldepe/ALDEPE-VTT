@@ -4,15 +4,29 @@ export interface DossierMetric {
   detail: string
 }
 
+export interface DossierFact {
+  label: string
+  value: string
+}
+
 export interface DossierItem {
   title: string
   detail: string
+  fields?: DossierFact[]
+  checks?: string[]
+  contents?: string[]
+  security?: string[]
+  clues?: string[]
+  consequences?: string[]
+  dmNotes?: string[]
 }
 
-export interface DossierSection {
+export interface DossierView {
+  id: string
+  label: string
   title: string
   eyebrow: string
-  body: string
+  summary: string
   items: DossierItem[]
 }
 
@@ -21,197 +35,605 @@ export interface DossierCell {
   role: string
   members: string
   pressure: string
+  fields?: DossierFact[]
 }
 
 export const bloodOfBhaalDossier = {
   title: 'Operativo Sangre de Bhaal',
   subtitle: 'Red secreta de Phandalin',
   premise:
-    'La Sangre de Bhaal no controla Phandalin como un ejercito. Lo controla como una infeccion pequena, paciente y bien escondida: favores, miedo, rutas discretas, negocios tapadera y gente vulnerable usada como ojos.',
+    'La Sangre de Bhaal no controla Phandalin como un ejército. Lo controla como una infección pequeña, paciente y bien escondida: favores, miedo, rutas discretas, negocios tapadera y gente vulnerable usada como ojos.',
   doctrine:
-    'Su filosofia sostiene que la vida racional ha convertido el mundo en una fabrica de sufrimiento consciente. No buscan gobernar el pueblo; quieren mantenerlo lo bastante estable para extraer informacion, sabotear la llegada de la Alianza de los Lores y proteger el trabajo de Nezznar en la Cueva del Eco.',
+    'Su filosofía sostiene que la vida racional ha convertido el mundo en una fábrica de sufrimiento consciente. No buscan gobernar el pueblo; quieren mantenerlo estable, medible y dócil hasta que Nezznar termine de extraer materiales y fabricar artefactos en la Cueva del Eco.',
   metrics: [
-    { label: 'Nucleo real', value: '5-7', detail: 'Rogues con magia de sangre y juramento directo a Bhaal.' },
+    { label: 'Núcleo real', value: '5-7', detail: 'Rogues con magia de sangre y juramento directo a Bhaal.' },
     { label: 'Colaboradores', value: '10-14', detail: 'Deudores, matones, informantes pagados y gente chantajeada.' },
-    { label: 'Pisos francos', value: '3', detail: 'Uno principal, uno de emergencia y uno limpio para reuniones cortas.' },
-    { label: 'Alijos', value: '6', detail: 'Pequenos, separados y con material suficiente para una accion concreta.' },
-    { label: 'Palomares', value: '2', detail: 'Comunicacion lenta pero segura con codigos de color y cinta.' },
-    { label: 'Exposicion', value: 'Baja', detail: 'Si una pieza cae, no revela toda la red.' },
+    { label: 'Pisos francos', value: '3', detail: 'Principal, emergencia y sala limpia para reuniones cortas.' },
+    { label: 'Alijos', value: '6', detail: 'Separados por función: combate, fuga, identidad, cifra, ritual y chantaje.' },
+    { label: 'Palomares', value: '2', detail: 'Comunicación lenta con códigos de cinta, grano y cera.' },
+    { label: 'Exposición', value: 'Baja', detail: 'Cada pieza sabe poco. La red cae por acumulación, no por una confesión.' },
   ],
   cells: [
     {
       name: 'Cuchillos de Medianoche',
-      role: 'Ejecucion discreta',
+      role: 'Ejecución discreta',
       members: '2 asesinos menores y 1 aprendiz de magia de sangre.',
-      pressure: 'Matan poco; prefieren accidentes, intimidacion y desapariciones de una noche.',
+      pressure: 'Matan poco; prefieren accidentes, intimidación y desapariciones de una noche.',
+      fields: [
+        { label: 'Jefe visible', value: 'Voryn "Soga Roja"' },
+        { label: 'Señal', value: 'Nudo doble en cuero negro' },
+        { label: 'Fallo típico', value: 'Dejan olor metálico en cerraduras' },
+      ],
     },
     {
       name: 'Manos Limpias',
       role: 'Negocios tapadera',
       members: '2 comerciantes comprados, 1 escribano y varios recaderos.',
       pressure: 'Mueven dinero, justifican cargamentos y esconden pagos como deudas comerciales.',
+      fields: [
+        { label: 'Cobertura', value: 'Facturas, portes y reclamaciones' },
+        { label: 'Objetivo', value: 'Borrar vínculos con Nezznar' },
+        { label: 'Punto débil', value: 'Libros contables demasiado perfectos' },
+      ],
     },
     {
       name: 'Ojos del Barro',
-      role: 'Informacion callejera',
-      members: 'Vagabundos, borrachos habituales y ninos de recados usados sin revelarles el culto.',
-      pressure: 'No son cultistas. Venden rumores por comida, cobre, techo o proteccion.',
+      role: 'Información callejera',
+      members: 'Vagabundos, borrachos habituales y niños de recados usados sin revelarles el culto.',
+      pressure: 'No son cultistas. Venden rumores por comida, cobre, techo o protección.',
+      fields: [
+        { label: 'Cobertura', value: 'Pedir limosna y mirar caballos' },
+        { label: 'Información', value: 'Nombres, heridas, rutas y horarios' },
+        { label: 'Señal', value: 'Tiza roja bajo un cubo' },
+      ],
     },
     {
       name: 'Venas del Pueblo',
       role: 'Magia de sangre',
       members: '3 iniciados capaces de marcar puertas, sellar heridas falsas y activar sigilos de alarma.',
-      pressure: 'Su magia deja pistas fisicas: costras negras, olor metalico, hilo rojo seco.',
+      pressure: 'Su magia deja pistas físicas: costras negras, olor metálico, hilo rojo seco.',
+      fields: [
+        { label: 'Recurso', value: 'Rituales cortos de alarma y silencio' },
+        { label: 'Limitación', value: 'No sostienen combates largos' },
+        { label: 'Rastro', value: 'Gota partida, costra negra, vena fría' },
+      ],
     },
   ],
-  sections: [
+  views: [
     {
-      title: 'Alijos',
-      eyebrow: 'Recursos ocultos',
-      body:
-        'Cada alijo resuelve una necesidad concreta. Ninguno contiene bastante informacion para comprometer toda la red.',
+      id: 'communications',
+      label: 'Comunicaciones',
+      title: 'Rutina diaria de mensajes',
+      eyebrow: 'Palomares, cifra y disciplina',
+      summary:
+        'La red comunica poco, siempre con excusa mundana y con redundancia. Si los players interceptan una nota, debe parecer comercio local hasta que crucen tres pistas.',
       items: [
         {
-          title: 'Barril falso del Sleeping Giant',
-          detail: 'Dos dagas curvas, vendas, monedas manchadas y una ampolla de sangre coagulada para rituales menores.',
+          title: 'Ciclo diario',
+          detail:
+            'Cada día tiene cuatro ventanas. Amanecer: revisión de marcas y alijos. Mediodía: recados comerciales. Atardecer: palomar interior. Medianoche: solo crisis o mensaje de Nezznar.',
+          fields: [
+            { label: 'Amanecer', value: 'Tiza y cierres revisados' },
+            { label: 'Mediodía', value: 'Recados con facturas falsas' },
+            { label: 'Atardecer', value: 'Palomar del almacén' },
+            { label: 'Medianoche', value: 'Solo emergencia' },
+          ],
+          checks: [
+            'Percepción DC 13 para notar que el mismo recadero pasa dos veces por rutas distintas.',
+            'Investigación DC 14 en facturas para detectar cantidades redondeadas que no cuadran con el peso.',
+            'Insight DC 15 para notar que un colaborador responde con frases memorizadas.',
+          ],
+          clues: [
+            'Cinta azul en una pata de paloma: retraso de objetivo.',
+            'Cera negra sin sello: mensaje de la célula, no de un comerciante.',
+            'Grano teñido con ceniza: aviso de vigilancia sobre el ayuntamiento.',
+          ],
         },
         {
-          title: 'Piedra hueca cerca del Ayuntamiento',
-          detail: 'Mensajes cifrados, cera negra y un sello falso para documentos de paso.',
+          title: 'Cifra de la Sangre Fría',
+          detail:
+            'La cifra usa lenguaje de herramientas y mercado. No es criptografía perfecta; es una capa para que una nota parezca aburrida si no se sabe el contexto.',
+          fields: [
+            { label: 'Martillo', value: 'Eliminar o neutralizar' },
+            { label: 'Clavo', value: 'Vigilar a una persona' },
+            { label: 'Aceite', value: 'Sobornar o calmar' },
+            { label: 'Sierra', value: 'Separar un grupo' },
+            { label: 'Tela blanca', value: 'Identidad limpia' },
+            { label: 'Carbón', value: 'Quemar prueba' },
+          ],
+          checks: [
+            'Investigation DC 13 si tienen dos mensajes cifrados.',
+            'History DC 14 para recordar jerga mercantil falsa o poco natural.',
+            'Thieves Tools o Calligrapher Tools DC 15 para reconstruir una tabla parcial.',
+          ],
+          consequences: [
+            '1 éxito: entienden una palabra clave.',
+            '2 éxitos: detectan objetivo o lugar aproximado.',
+            '3 éxitos: identifican la célula que escribió el mensaje.',
+          ],
         },
         {
-          title: 'Caja doble en Lionshield Coster',
-          detail: 'Material marcado como recambio de bisagras; en realidad contiene ganzuas y hojas finas.',
-        },
-        {
-          title: 'Bolsa impermeable junto al arroyo',
-          detail: 'Ruta de escape, ropa sencilla y un vial que borra rastros de sangre durante unos minutos.',
-        },
-        {
-          title: 'Hueco bajo la vieja calzada',
-          detail: 'Cuerda, clavos, tiza roja, una llave oxidada y una lista de nombres tachados.',
-        },
-        {
-          title: 'Sepultura sin nombre',
-          detail: 'Alijo de emergencia. Solo el nucleo sabe que contiene un foco ritual envuelto en lino.',
+          title: 'Palomares encubiertos',
+          detail:
+            'Hay dos palomares. Uno interior para Phandalin y otro exterior para rutas de la Costa de la Espada. Los vecinos creen que pertenecen a mensajería mercantil.',
+          fields: [
+            { label: 'Interior', value: 'Tejado de almacén' },
+            { label: 'Exterior', value: 'Granero oeste' },
+            { label: 'Responsable', value: 'Mozo de establo chantajeado' },
+          ],
+          contents: [
+            'Anillas de color, grano tintado, cera negra, tres tubos de mensaje y una lista de nombres incompleta.',
+            'Una nota quemada a medias con las palabras "clavo alto" y "carro norte".',
+          ],
+          security: [
+            'Campanilla de hilo fino: Percepción DC 14 para verla, Sleight of Hand DC 13 para desarmarla.',
+            'Paloma marcada con polvo azul; si vuelve alterada, la célula asume que el palomar está comprometido.',
+          ],
         },
       ],
     },
     {
-      title: 'Comunicaciones',
-      eyebrow: 'Palomares y cifra',
-      body:
-        'La red comunica poco y con redundancia. Un mensaje interceptado debe parecer comercio aburrido o supersticion local.',
+      id: 'operations',
+      label: 'Operaciones',
+      title: 'Qué hacen realmente cada semana',
+      eyebrow: 'Negocio, miedo y sabotaje',
+      summary:
+        'El operativo no es una banda ruidosa. Funciona como una oficina criminal pequeña: recopila información, protege rutas, elimina riesgos y fabrica coartadas.',
       items: [
         {
-          title: 'Palomar del granero oeste',
-          detail: 'Usado para avisos hacia rutas externas. Cinta roja significa peligro; azul, retraso; negra, objetivo movido.',
+          title: 'Control de recién llegados',
+          detail:
+            'Cualquier grupo armado que llegue a Phandalin entra en observación durante 24 horas. No atacan primero salvo que el grupo busque a Iarno, Gundren o la Cueva del Eco.',
+          fields: [
+            { label: 'Primer contacto', value: 'Mozo o posadera' },
+            { label: 'Informe mínimo', value: 'Nombres, heridas, símbolos, monturas' },
+            { label: 'Riesgo alto', value: 'Paladines, Tyr, Alianza de los Lores' },
+          ],
+          checks: [
+            'Insight DC 14 en conversación casual para notar preguntas demasiado concretas.',
+            'Perception DC 15 para ver una marca de tiza aparecer después de hospedarse.',
+          ],
+          consequences: [
+            'Si los players no se esconden: la célula sabe dónde duermen esa noche.',
+            'Si mienten bien: Deception DC 15 reduce el informe a rumores contradictorios.',
+          ],
         },
         {
-          title: 'Palomar del tejado del almacén',
-          detail: 'Usado dentro del pueblo. Nadie lo llama palomar: figura en cuentas como jaula de mensajeria mercantil.',
+          title: 'Sabotaje de documentos',
+          detail:
+            'Su prioridad es impedir que el documento de propiedad de Gundren llegue limpio al pueblo. Prefieren mancharlo, robar una página, crear una copia falsa o sembrar dudas legales.',
+          fields: [
+            { label: 'Objetivo', value: 'Papeles de la familia Rockseeker' },
+            { label: 'Método favorito', value: 'Robo parcial y copia mala' },
+            { label: 'Coartada', value: 'Disputa minera ordinaria' },
+          ],
+          contents: [
+            'Sello falso de la Alianza de los Lores.',
+            'Pergamino envejecido con sales.',
+            'Lista de testigos que pueden ser sobornados o asustados.',
+          ],
+          dmNotes: [
+            'Si el grupo protege muy bien el documento, cambia el plan a desacreditar a Gundren como oportunista.',
+          ],
         },
         {
-          title: 'Cifra de la Sangre Fria',
-          detail: 'Sustitucion simple con nombres de herramientas. Martillo es matar, clavo es vigilar, aceite es sobornar.',
-        },
-        {
-          title: 'Tinta ferrica',
-          detail: 'Mensajes escritos con mezcla ferrosa que se oscurece al calentar el papel cerca de una vela.',
+          title: 'Pantalla de violencia local',
+          detail:
+            'La Sangre de Bhaal usa a los Anillos de Bronce y pequeños matones para que todo parezca bandolerismo, deudas o broncas del Sleeping Giant.',
+          fields: [
+            { label: 'Cara pública', value: 'Anillos de Bronce' },
+            { label: 'Orden real', value: 'Nezznar por intermediarios' },
+            { label: 'Fallo visible', value: 'Los pagos no siguen patrón local' },
+          ],
+          clues: [
+            'Un bandido lleva una moneda marcada con gota partida y no sabe qué significa.',
+            'Los Anillos de Bronce reciben órdenes escritas con jerga de herramientas.',
+          ],
         },
       ],
     },
     {
-      title: 'Pisos francos',
-      eyebrow: 'Lugares seguros',
-      body:
-        'Los pisos no son fortalezas. Son habitaciones utiles durante diez minutos: esconder a alguien, cambiar ropa, quemar una nota.',
-      items: [
-        {
-          title: 'Cuarto trasero de la taberna',
-          detail: 'El mas usado y el mas arriesgado. Tiene salida a un patio estrecho y una trampilla falsa.',
-        },
-        {
-          title: 'Desvan del comerciante endeudado',
-          detail: 'Piso limpio para reuniones con colaboradores que no deben ver simbolos de Bhaal.',
-        },
-        {
-          title: 'Bodega bajo casa abandonada',
-          detail: 'Punto de emergencia. Contiene manta, agua, cuchillo, tinta y una ruta hacia las afueras.',
-        },
-      ],
-    },
-    {
-      title: 'Rutas alternativas',
+      id: 'routes',
+      label: 'Rutas',
+      title: 'Rutas discretas de Phandalin',
       eyebrow: 'Movimiento interno',
-      body:
-        'Phandalin es pequeno, asi que no hay una red subterranea inmensa. Hay atajos, patios, cercas bajas y horarios estudiados.',
+      summary:
+        'Phandalin no tiene una red subterránea inmensa. Tiene patios, cercas, horarios, barro, tejados bajos y gente que mira hacia otro lado.',
       items: [
         {
           title: 'Ruta del arroyo',
-          detail: 'Sirve para cruzar de noche sin pisar la calle principal. Mala con lluvia, perfecta con niebla.',
+          detail:
+            'Cruza detrás de viviendas y evita la calle principal. Perfecta con niebla; mala con lluvia fuerte porque deja huellas profundas.',
+          fields: [
+            { label: 'Uso', value: 'Entrada y fuga nocturna' },
+            { label: 'Tiempo', value: '8-12 minutos' },
+            { label: 'Riesgo', value: 'Huellas y perros' },
+          ],
+          checks: [
+            'Stealth DC 13 para cruzar sin ser visto.',
+            'Survival DC 12 para seguir huellas si llovió.',
+            'Perception DC 15 para ver cuerda húmeda escondida bajo el puente.',
+          ],
         },
         {
           title: 'Ruta de patios',
-          detail: 'Encadena tres patios privados cuyos duenos creen que solo ayudan a contrabandistas menores.',
+          detail:
+            'Encadena tres patios privados. Los dueños creen que ayudan a contrabandistas menores, no a una secta de Bhaal.',
+          fields: [
+            { label: 'Uso', value: 'Mover paquetes pequeños' },
+            { label: 'Llave', value: 'Gancho bajo maceta rota' },
+            { label: 'Riesgo', value: 'Vecino madrugador' },
+          ],
+          checks: [
+            'Acrobatics DC 14 para saltar verja sin ruido.',
+            'Investigation DC 13 para encontrar el gancho.',
+            'Persuasion DC 14 para convencer a un dueño asustado.',
+          ],
+        },
+        {
+          title: 'Ruta del tejado y palomar',
+          detail:
+            'Sirve para llegar al palomar interior y observar la calle principal. Solo la usan miembros ligeros o jóvenes recaderos.',
+          fields: [
+            { label: 'Uso', value: 'Observación y mensajes' },
+            { label: 'Tiempo', value: '5 minutos' },
+            { label: 'Riesgo', value: 'Tejas sueltas' },
+          ],
+          checks: [
+            'Athletics DC 12 para subir.',
+            'Acrobatics DC 15 para cruzar sin romper tejas.',
+            'Perception DC 14 desde la calle para notar sombra en el alero.',
+          ],
         },
         {
           title: 'Ruta del carro roto',
-          detail: 'Un carro abandonado tapa una marca de tiza que indica si el camino hacia la guarida esta limpio.',
-        },
-        {
-          title: 'Ruta de campanas',
-          detail: 'Depende de los horarios del templo y la taberna. Si ambos suenan o gritan, se cubren pasos y puertas.',
+          detail:
+            'Un carro abandonado tapa una marca de tiza que indica si el camino hacia el piso de emergencia está limpio.',
+          fields: [
+            { label: 'Uso', value: 'Señal y cobertura' },
+            { label: 'Marca limpia', value: 'Media luna' },
+            { label: 'Marca peligrosa', value: 'Tres rayas' },
+          ],
+          clues: [
+            'La rueda tiene barro fresco aunque el carro no se mueve.',
+            'La marca cambia después de que los players pregunten por Gundren.',
+          ],
         },
       ],
     },
     {
-      title: 'Infiltrados',
-      eyebrow: 'Control social',
-      body:
-        'La red no necesita controlar a todos. Le basta con saber antes que nadie quien llega, quien pregunta y quien tiene miedo.',
+      id: 'informants',
+      label: 'Aliados',
+      title: 'Informantes y colaboradores',
+      eyebrow: 'Qué sabe cada pieza',
+      summary:
+        'La mayoría no sabe que sirve a Bhaal. Eso hace la red más resistente y más trágica: muchos son culpables, pocos entienden el tamaño del mal.',
       items: [
         {
-          title: 'Escribano de media jornada',
-          detail: 'No es devoto. Cambia registros menores por dinero y cree trabajar para contrabandistas.',
+          title: 'Mozo de establo',
+          detail:
+            'Informa de monturas nuevas, heridas, rutas previstas y si alguien compra pienso para más días de los declarados.',
+          fields: [
+            { label: 'Motivo', value: 'Chantaje por deuda familiar' },
+            { label: 'Sabe', value: 'Palomar interior y dos recaderos' },
+            { label: 'No sabe', value: 'Nezznar, Bhaal, Cueva del Eco' },
+          ],
+          clues: [
+            'Tiene las uñas manchadas de cera negra.',
+            'Evita mirar a paladines o símbolos de Tyr.',
+          ],
         },
         {
-          title: 'Mozo de establo',
-          detail: 'Avisa de caballos nuevos, rutas de salida y heridas sospechosas.',
+          title: 'Escribano de media jornada',
+          detail:
+            'Cambia registros menores, retrasa permisos y copia firmas. Cree trabajar para una red de contrabando de mineral.',
+          fields: [
+            { label: 'Motivo', value: 'Dinero y miedo a perder cargo' },
+            { label: 'Sabe', value: 'Nombres de Manos Limpias' },
+            { label: 'Prueba', value: 'Libro de tasas con columnas duplicadas' },
+          ],
+          checks: [
+            'Investigation DC 14 para ver que sus correcciones usan dos tintas.',
+            'Insight DC 13 si se menciona a Iarno.',
+          ],
         },
         {
           title: 'Vagabundo del pozo',
-          detail: 'Ve reuniones, escucha nombres y recibe comida. No sabe que sus marcas alimentan una secta.',
+          detail:
+            'Recolecta horarios, nombres y discusiones. No sabe leer; comunica con marcas de tiza y piedras apiladas.',
+          fields: [
+            { label: 'Motivo', value: 'Comida, techo y protección' },
+            { label: 'Sabe', value: 'Tres señales de tiza' },
+            { label: 'Riesgo moral', value: 'Es víctima y cómplice menor' },
+          ],
+          dmNotes: [
+            'Funciona bien como escena de compasión: puede ayudar si los players le ofrecen seguridad real.',
+          ],
         },
         {
           title: 'Comerciante endeudado',
-          detail: 'Presta almacen, cambia paquetes y teme que su familia pague su deuda.',
+          detail:
+            'Permite usar su desván como sala limpia y firma portes falsos. Tiene pánico de que su familia sea usada como garantía.',
+          fields: [
+            { label: 'Motivo', value: 'Deuda y amenaza indirecta' },
+            { label: 'Sabe', value: 'Piso limpio, ruta de patios' },
+            { label: 'Prueba', value: 'Recibos con la misma mancha circular' },
+          ],
+          consequences: [
+            'Si lo presionan en público, avisa a la red por miedo.',
+            'Si lo aíslan y protegen, revela el desván y un horario de reunión.',
+          ],
         },
       ],
     },
     {
-      title: 'Pistas para jugadores',
-      eyebrow: 'Mesa',
-      body:
-        'Las pistas deben parecer crimen local hasta que se acumulen. La revelacion funciona mejor si primero parece bandolerismo.',
+      id: 'safehouses',
+      label: 'Pisos francos',
+      title: 'Pisos francos, contenido y seguridad',
+      eyebrow: 'Lugares útiles durante diez minutos',
+      summary:
+        'No son fortalezas. Son espacios de paso: esconder a alguien, cambiar ropa, destruir una nota, aguantar una noche o preparar una emboscada pequeña.',
       items: [
         {
-          title: 'Pista suave',
-          detail: 'Cera negra en cartas sin sello, o la misma palabra comercial repetida en documentos sin relacion.',
+          title: 'Cuarto trasero del Sleeping Giant',
+          detail:
+            'El más usado y el más arriesgado. Está pensado para cerrar una conversación violenta, no para resistir un asedio.',
+          fields: [
+            { label: 'Uso', value: 'Intimidación y cambio de ropa' },
+            { label: 'Salida', value: 'Patio estrecho' },
+            { label: 'Ocupación', value: '1-3 personas' },
+          ],
+          contents: [
+            'Manta oscura, jarra de agua, dos capas reversibles, kit de ganzúas sencillo, una daga sin marca.',
+            'Caja bajo tabla: 18 gp, vendas, cera negra, tres notas cifradas de baja importancia.',
+          ],
+          security: [
+            'Trampilla falsa con polvo de carbón: Investigation DC 14 para detectarla.',
+            'Cuerda con campanilla detrás de barriles: Perception DC 13, Sleight of Hand DC 12.',
+          ],
+          clues: [
+            'La mesa tiene marcas de cuchillo que forman una gota partida si se calcan.',
+          ],
         },
         {
-          title: 'Pista media',
-          detail: 'Un alijo con tiza roja, una daga ritual y una nota que habla de clavos cuando claramente se refiere a personas.',
+          title: 'Desván del comerciante endeudado',
+          detail:
+            'Sala limpia para reuniones con colaboradores no iniciados. No hay símbolos de Bhaal; todo parece contrabando vulgar.',
+          fields: [
+            { label: 'Uso', value: 'Reuniones y pagos' },
+            { label: 'Salida', value: 'Escalera exterior' },
+            { label: 'Ocupación', value: '2-5 personas' },
+          ],
+          contents: [
+            'Facturas, ropa de trabajo, saco con mineral barato, dos identidades de carretero, mapas incompletos.',
+            'Caja de doble fondo con sello falso de transportista y lista de deudores.',
+          ],
+          security: [
+            'Escalón que cruje a propósito: Stealth DC 15 para evitarlo.',
+            'Vecino cómplice menor que avisa si ve armas largas: Deception DC 14 para engañarlo.',
+          ],
         },
         {
-          title: 'Pista fuerte',
-          detail: 'Un iniciado de magia de sangre deja una costra negra con forma de gota partida.',
-        },
-        {
-          title: 'Revelacion',
-          detail: 'Los jugadores descubren que los matones visibles eran pantalla; el pueblo lleva semanas siendo medido desde dentro.',
+          title: 'Bodega bajo casa abandonada',
+          detail:
+            'Punto de emergencia. Es el único con símbolos reales de Bhaal, porque se usa cuando la célula ya asume que la cobertura está rota.',
+          fields: [
+            { label: 'Uso', value: 'Fuga, ocultación y ritual menor' },
+            { label: 'Salida', value: 'Zanja hacia afueras' },
+            { label: 'Ocupación', value: '1-2 personas' },
+          ],
+          contents: [
+            'Agua, pan duro, tinta férrica, cuchillo ritual, cuerda, capa con barro seco y un pequeño foco de sangre coagulada.',
+            'Bolsa sellada: tres nombres de infiltrados parciales, todos con apodos.',
+          ],
+          security: [
+            'Sigilo de alarma de sangre: Arcana DC 15 para reconocerlo, Dispel Magic o Arcana DC 16 para apagarlo.',
+            'Tabla con clavos bajo alfombra: Perception DC 13; si se pisa, daño menor y ruido suficiente para alertar.',
+          ],
+          dmNotes: [
+            'Si los players encuentran este lugar, la campaña puede pasar de "crimen local" a "secta oculta".',
+          ],
         },
       ],
     },
-  ],
+    {
+      id: 'caches',
+      label: 'Alijos',
+      title: 'Alijos interactuables',
+      eyebrow: 'Recursos ocultos',
+      summary:
+        'Cada alijo resuelve una necesidad concreta. Ninguno contiene bastante información para comprometer toda la red, pero varios juntos dibujan el mapa del operativo.',
+      items: [
+        {
+          title: 'Barril falso del Sleeping Giant',
+          detail:
+            'Alijo de respuesta rápida para una pelea que debe parecer tabernaria. Está preparado para armar a dos personas y borrar marcas superficiales.',
+          fields: [
+            { label: 'Función', value: 'Combate corto' },
+            { label: 'Acceso', value: 'Marca de uña en aro inferior' },
+            { label: 'Riesgo', value: 'Muy expuesto' },
+          ],
+          contents: [
+            '2 dagas curvas, blackjack, vendas, 12 gp, ampolla de sangre coagulada, capa reversible.',
+          ],
+          checks: [
+            'Investigation DC 13 para detectar peso falso.',
+            'Sleight of Hand DC 12 para abrir sin romper el aro.',
+          ],
+        },
+        {
+          title: 'Piedra hueca junto al ayuntamiento',
+          detail:
+            'Alijo de cifra. Sirve para dejar mensajes cuando el palomar está vigilado.',
+          fields: [
+            { label: 'Función', value: 'Mensajes y sellos' },
+            { label: 'Acceso', value: 'Girar piedra al norte' },
+            { label: 'Riesgo', value: 'Visible de día' },
+          ],
+          contents: [
+            'Tres notas cifradas, cera negra, sello falso de paso, carbón, aguja fina.',
+          ],
+          security: [
+            'Polvo rojo en grieta: si se mueve mal, mancha los dedos y marca al intruso.',
+          ],
+        },
+        {
+          title: 'Bolsa impermeable del arroyo',
+          detail:
+            'Alijo de fuga para alguien que sale del pueblo mojado, herido o perseguido.',
+          fields: [
+            { label: 'Función', value: 'Escape' },
+            { label: 'Acceso', value: 'Cuerda bajo piedra plana' },
+            { label: 'Riesgo', value: 'Huellas en barro' },
+          ],
+          contents: [
+            'Ropa común, mapa de dos rutas, 6 sp, pan seco, vial que oculta olor de sangre durante una escena.',
+          ],
+        },
+        {
+          title: 'Caja de identidades',
+          detail:
+            'Oculta en un doble fondo de suministros. Contiene vidas falsas, no tesoro.',
+          fields: [
+            { label: 'Función', value: 'Coartadas' },
+            { label: 'Acceso', value: 'Llave oxidada de alijo viejo' },
+            { label: 'Riesgo', value: 'Compromete Manos Limpias' },
+          ],
+          contents: [
+            '3 nombres falsos, 2 cartas de recomendación, tinta, anillos baratos, recibos de posada, capa noble gastada.',
+          ],
+          clues: [
+            'Una identidad aparece también en registros del escribano.',
+          ],
+        },
+        {
+          title: 'Sepultura sin nombre',
+          detail:
+            'Alijo ritual de último recurso. Solo el núcleo sabe que existe.',
+          fields: [
+            { label: 'Función', value: 'Ritual y silencio' },
+            { label: 'Acceso', value: 'Tres piedras negras alineadas' },
+            { label: 'Riesgo', value: 'Alta señal religiosa' },
+          ],
+          contents: [
+            'Foco ritual envuelto en lino, cuchillo ceremonial, ceniza fría, lista de nombres sin contexto.',
+          ],
+          security: [
+            'La tierra está compactada con sal y sangre seca: Religion DC 15 para entender el símbolo.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'capture',
+      label: 'Captura',
+      title: 'Si capturan a un agente',
+      eyebrow: 'Interrogatorio narrativo no gráfico',
+      summary:
+        'Usa este sistema para sacar información sin describir violencia explícita. La tensión viene de lealtad, miedo, pruebas, promesas y contradicciones, no de recrearse en daño físico.',
+      items: [
+        {
+          title: 'Reloj de resistencia',
+          detail:
+            'Cada agente tiene un reloj de 6 segmentos. Los éxitos llenan el reloj de revelación; los fallos llenan el reloj de pánico. Si pánico se completa primero, el agente miente, se bloquea o intenta activar una señal.',
+          fields: [
+            { label: 'Segmentos', value: '6 revelación / 4 pánico' },
+            { label: 'Duración', value: 'Una escena' },
+            { label: 'Tono', value: 'Presión narrativa' },
+          ],
+          checks: [
+            'Insight DC 13 para detectar qué teme realmente.',
+            'Persuasion DC 14 si ofrecen protección creíble.',
+            'Intimidation DC 15 para romper una coartada, con riesgo de pánico.',
+            'Investigation DC 14 usando pruebas físicas del alijo o la cifra.',
+            'Medicine DC 12 si está herido: estabilizarlo reduce pánico y mejora cooperación.',
+          ],
+          consequences: [
+            '2 segmentos: revela un apodo o ruta menor.',
+            '4 segmentos: revela un alijo o colaborador no iniciado.',
+            '6 segmentos: revela célula, palomar o piso franco según su nivel.',
+            'Pánico completo: activa una mentira preparada o intenta dejar una marca de aviso.',
+          ],
+        },
+        {
+          title: 'Niveles de conocimiento',
+          detail:
+            'Nadie debe saber todo. Incluso un iniciado real solo conoce su célula, una ruta y un punto de emergencia.',
+          fields: [
+            { label: 'Colaborador', value: '1 señal, 1 contacto' },
+            { label: 'Recadero', value: '2 rutas, 1 alijo menor' },
+            { label: 'Iniciado', value: 'Célula, palomar, piso de emergencia' },
+            { label: 'Núcleo', value: 'Nezznar por símbolo, no por rostro' },
+          ],
+          dmNotes: [
+            'Si un player pregunta algo que el agente no sabe, responde con miedo real y detalles erróneos, no con silencio artificial.',
+            'Una confesión limpia debe costar pruebas, protección o una escena de confianza.',
+          ],
+        },
+        {
+          title: 'Señales de contrainteligencia',
+          detail:
+            'La red asume capturas. Sus agentes tienen frases de seguridad, mentiras parciales y marcas para avisar de que hablaron bajo presión.',
+          fields: [
+            { label: 'Frase segura', value: 'La madera llegó húmeda' },
+            { label: 'Marca de aviso', value: 'Tiza vertical bajo puerta' },
+            { label: 'Mentira común', value: 'Culpar a contrabandistas' },
+          ],
+          checks: [
+            'Insight DC 15 para notar que una frase se repite como contraseña.',
+            'Perception DC 14 para ver que intenta mancharse un dedo con polvo rojo.',
+          ],
+          consequences: [
+            'Si la red recibe señal de captura, abandona un alijo menor y mueve una reunión al desván.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'clues',
+      label: 'Pistas',
+      title: 'Escalada de pistas para la mesa',
+      eyebrow: 'De crimen local a secta filosófica',
+      summary:
+        'La revelación funciona mejor si primero parece bandolerismo, luego corrupción, luego culto. Cada escena debe ofrecer una pista útil aunque los players no resuelvan todo.',
+      items: [
+        {
+          title: 'Pistas suaves',
+          detail:
+            'Úsalas en sesiones tempranas. No prueban la secta; solo crean patrón.',
+          clues: [
+            'Cera negra sin sello.',
+            'La misma palabra comercial repetida en documentos sin relación.',
+            'Tiza roja en esquinas donde no hay obras.',
+            'Un informante mira más a los símbolos religiosos que a las armas.',
+          ],
+        },
+        {
+          title: 'Pistas medias',
+          detail:
+            'Empiezan a romper la coartada de crimen ordinario.',
+          clues: [
+            'Un alijo contiene equipo de batalla y una identidad falsa.',
+            'Un mensaje usa "clavos" para referirse claramente a personas.',
+            'Un bandido de los Anillos de Bronce cobró de alguien que no conoce.',
+            'Una costra negra aparece en una cerradura abierta sin herramientas.',
+          ],
+        },
+        {
+          title: 'Pistas fuertes',
+          detail:
+            'Con estas ya pueden sospechar de una estructura filosófica y ritual.',
+          clues: [
+            'El símbolo de gota partida aparece en un foco ritual.',
+            'Un iniciado habla de "terminar el sufrimiento racional".',
+            'Un palomar conecta a Phandalin con rutas externas y Nezznar.',
+            'Un documento muestra que Iarno fue buscado por la Alianza, pero alguien borró su rastro.',
+          ],
+          consequences: [
+            'Cuando los players unan tres pistas fuertes, activa una reacción: mudanza de piso franco, presión contra un testigo o emboscada indirecta.',
+          ],
+        },
+      ],
+    },
+  ] satisfies DossierView[],
 }

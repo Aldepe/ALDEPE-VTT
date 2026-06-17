@@ -26,6 +26,75 @@ function publicFieldLabel(field: string): string {
   return field.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase())
 }
 
+const compactPublicFields = new Set([
+  'Número de miembros',
+  'Alignment',
+  'Liderazgo',
+  'Base',
+  'Alcance',
+  'Recursos',
+  'Aliados',
+  'Enemigos',
+  'Estado actual',
+  'Señales visibles',
+  'Rol en campaña',
+  'Facción',
+  'Ubicación',
+  'Estado',
+  'Relación con players',
+  'Pistas',
+])
+
+const publicFieldOrder = [
+  'Ideología',
+  'Descripción',
+  'Historia',
+  'Motivaciones',
+  'Rol en campaña',
+  'Facción',
+  'Ubicación',
+  'Número de miembros',
+  'Alignment',
+  'Liderazgo',
+  'Base',
+  'Alcance',
+  'Métodos',
+  'Recursos',
+  'Aliados',
+  'Enemigos',
+  'Estado actual',
+  'Señales visibles',
+  'Estado',
+  'Relación con players',
+  'Pistas',
+  'Origen',
+  'Claves',
+  'Encuentros',
+  'Conexiones',
+  'Significado',
+  'Consecuencias',
+  'Uso en mesa',
+]
+
+const publicFieldOrderIndex = new Map(publicFieldOrder.map((field, index) => [field, index]))
+
+function isCompactPublicField(field: string, value: string): boolean {
+  return compactPublicFields.has(field) || value.length <= 150
+}
+
+function getOrderedPublicFields(fields: Record<string, string>): [string, string][] {
+  return Object.entries(fields).sort(([leftField], [rightField]) => {
+    const leftIndex = publicFieldOrderIndex.get(leftField) ?? Number.MAX_SAFE_INTEGER
+    const rightIndex = publicFieldOrderIndex.get(rightField) ?? Number.MAX_SAFE_INTEGER
+
+    if (leftIndex !== rightIndex) {
+      return leftIndex - rightIndex
+    }
+
+    return publicFieldLabel(leftField).localeCompare(publicFieldLabel(rightField), 'es')
+  })
+}
+
 export function LorePage({ campaignId, entries, isDm, members, onDelete, onSave, viewerMember }: LorePageProps) {
   const [selectedType, setSelectedType] = useState<LoreType | 'all'>('all')
   const [query, setQuery] = useState('')
@@ -51,6 +120,12 @@ export function LorePage({ campaignId, entries, isDm, members, onDelete, onSave,
   const linkedEntries = detailEntry?.linkedEntryIds
     .map((linkedId) => entries.find((entry) => entry.id === linkedId))
     .filter((entry): entry is LoreEntry => Boolean(entry && canViewLore(viewerMember, entry)))
+  const detailPublicFields = detailEntry ? getOrderedPublicFields(detailEntry.publicFields) : []
+  const compactDetailFields = detailPublicFields.filter(([field, value]) => isCompactPublicField(field, value))
+  const longDetailFields = detailPublicFields.filter(([field, value]) => !isCompactPublicField(field, value))
+  const draftPublicFields = getOrderedPublicFields(draft.publicFields)
+  const compactDraftFields = draftPublicFields.filter(([field, value]) => isCompactPublicField(field, value))
+  const longDraftFields = draftPublicFields.filter(([field, value]) => !isCompactPublicField(field, value))
 
   function startNewEntry(type: LoreType) {
     const nextEntry = createBlankLoreEntry(campaignId, type)
@@ -192,7 +267,17 @@ export function LorePage({ campaignId, entries, isDm, members, onDelete, onSave,
               </div>
             </div>
             <div className="detail-fields">
-              {Object.entries(detailEntry.publicFields).map(([field, value]) => (
+              {compactDetailFields.length ? (
+                <section className="detail-field-matrix" aria-label="Campos rápidos">
+                  {compactDetailFields.map(([field, value]) => (
+                    <div className="matrix-field" key={field}>
+                      <span>{publicFieldLabel(field)}</span>
+                      <strong>{value || 'Sin dato.'}</strong>
+                    </div>
+                  ))}
+                </section>
+              ) : null}
+              {longDetailFields.map(([field, value]) => (
                 <section key={field}>
                   <h4>{publicFieldLabel(field)}</h4>
                   <p>{value || 'Sin contenido publico.'}</p>
@@ -244,7 +329,16 @@ export function LorePage({ campaignId, entries, isDm, members, onDelete, onSave,
             <span>Cargar imagen</span>
             <input accept="image/*" onChange={uploadImage} type="file" />
           </label>
-          {Object.keys(draft.publicFields).map((field) => (
+          {compactDraftFields.length ? (
+            <div className="lore-editor-matrix">
+              {compactDraftFields.map(([field]) => (
+                <Field key={field} label={publicFieldLabel(field)}>
+                  <TextInput onChange={(event) => patchField(field, event.target.value)} value={draft.publicFields[field]} />
+                </Field>
+              ))}
+            </div>
+          ) : null}
+          {longDraftFields.map(([field]) => (
             <Field key={field} label={publicFieldLabel(field)}>
               <TextArea onChange={(event) => patchField(field, event.target.value)} value={draft.publicFields[field]} />
             </Field>

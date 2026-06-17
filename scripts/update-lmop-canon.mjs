@@ -72,6 +72,61 @@ function zonePublicFields(fields) {
   }
 }
 
+const personFieldDefaults = {
+  descripcion: 'Pendiente de concretar.',
+  historia: 'Pendiente de concretar.',
+  motivaciones: 'Pendiente de concretar.',
+  rolCampana: 'Secundario',
+  faccion: 'Independiente',
+  ubicacion: 'Phandalin o alrededores',
+  alignment: 'Desconocido',
+  estado: 'Activo',
+  relacionPlayers: 'Por descubrir',
+  pistas: 'Sin pistas directas.',
+  usoEnMesa: 'Usar como PNJ de apoyo o conflicto.',
+}
+
+function personPublicFields(fields) {
+  const values = { ...personFieldDefaults, ...fields }
+
+  return {
+    Descripción: values.descripcion,
+    Historia: values.historia,
+    Motivaciones: values.motivaciones,
+    'Rol en campaña': values.rolCampana,
+    Facción: values.faccion,
+    Ubicación: values.ubicacion,
+    Alignment: values.alignment,
+    Estado: values.estado,
+    'Relación con players': values.relacionPlayers,
+    Pistas: values.pistas,
+    'Uso en mesa': values.usoEnMesa,
+  }
+}
+
+const placeholderPersonValues = new Set([
+  'Pendiente de concretar.',
+  'Historia personal no confirmada.',
+  'Motivaciones por descubrir.',
+  'Secundario',
+  'PNJ de campaña.',
+  'Independiente',
+  'Phandalin o alrededores',
+  'Desconocido',
+  'Activo',
+  'Por descubrir',
+  'Por descubrir en mesa.',
+  'Sin pistas directas.',
+  'Usar como PNJ de apoyo o conflicto.',
+  'Usar segun escena.',
+])
+
+function firstMeaningfulPersonValue(...values) {
+  return values.find(
+    (value) => typeof value === 'string' && value.trim().length > 0 && !placeholderPersonValues.has(value.trim()),
+  )
+}
+
 const loreDefinitions = [
   {
     key: 'borisKamenov',
@@ -971,6 +1026,7 @@ async function main() {
   await saveLoreEntries(entries, existingLore)
   await rewriteExistingLoreText(campaign.id, new Set(entries.map((entry) => entry.id)))
   await normalizeRemainingOrganizations(campaign.id)
+  await normalizeRemainingPersons(campaign.id)
   await upsertLoreLinks(idByKey)
   await rewriteQuests(campaign.id)
   await rewriteTimeline(campaign.id)
@@ -1050,7 +1106,7 @@ async function resolveCampaign() {
 async function listLore(campaignId) {
   const { data, error } = await supabase
     .from('lore_entries')
-    .select('id,type,name,publicFields,secret,isVisibleToPlayers,visibleToPlayerIds')
+    .select('id,type,name,image,publicFields,secret,isVisibleToPlayers,visibleToPlayerIds')
     .eq('campaignId', campaignId)
 
   if (error) {
@@ -1122,7 +1178,6 @@ function toLoreRow(campaignId, definition, id) {
     campaignId,
     type: definition.type,
     name: definition.name,
-    image: {},
     publicFields: definition.publicFields,
     secret: definition.secret,
     isVisibleToPlayers: false,
@@ -1241,6 +1296,144 @@ async function normalizeRemainingOrganizations(campaignId) {
       throw new Error(`Could not normalize organization "${entry.name}" (${entry.id}): ${error.message}`)
     }
   }
+}
+
+async function normalizeRemainingPersons(campaignId) {
+  const existingLore = await listLore(campaignId)
+  const personRows = existingLore.filter((entry) => entry.type === 'person')
+
+  for (const entry of personRows) {
+    const currentFields = entry.publicFields ?? {}
+    const fieldKeys = Object.keys(currentFields).sort()
+    const expectedKeys = Object.keys(personPublicFields({})).sort()
+    const isAlreadyNormalized = fieldKeys.join('|') === expectedKeys.join('|')
+    const hasPlaceholderValues = Object.values(currentFields).some(
+      (value) => typeof value === 'string' && placeholderPersonValues.has(value.trim()),
+    )
+
+    if (isAlreadyNormalized && !hasPlaceholderValues) {
+      continue
+    }
+
+    const previousSummary = Object.entries(currentFields)
+      .filter(([, value]) => typeof value === 'string' && value.trim() && !placeholderPersonValues.has(value.trim()))
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\n\n')
+    const nextPublicFields = personPublicFields({
+      descripcion:
+        firstMeaningfulPersonValue(currentFields.Descripción, currentFields.descripcion, currentFields.description, previousSummary) ??
+        personFieldDefaults.descripcion,
+      historia:
+        firstMeaningfulPersonValue(currentFields.Historia, currentFields.historia, currentFields.history, currentFields.routine, previousSummary) ??
+        personFieldDefaults.historia,
+      motivaciones:
+        firstMeaningfulPersonValue(currentFields.Motivaciones, currentFields.traitsMotivations, currentFields.motivaciones) ??
+        personFieldDefaults.motivaciones,
+      rolCampana:
+        firstMeaningfulPersonValue(currentFields['Rol en campaña'], currentFields.rolCampana, currentFields['Uso en mesa']) ??
+        inferPersonRole(entry.name),
+      faccion: firstMeaningfulPersonValue(currentFields.Facción, currentFields.faccion) ?? inferPersonFaction(entry.name),
+      ubicacion: firstMeaningfulPersonValue(currentFields.Ubicación, currentFields.ubicacion) ?? personFieldDefaults.ubicacion,
+      alignment: firstMeaningfulPersonValue(currentFields.Alignment, currentFields.alignment) ?? personFieldDefaults.alignment,
+      estado: firstMeaningfulPersonValue(currentFields.Estado, currentFields.estado) ?? personFieldDefaults.estado,
+      relacionPlayers:
+        firstMeaningfulPersonValue(currentFields['Relación con players'], currentFields.relacionPlayers) ??
+        inferPersonRelation(entry.name),
+      pistas: firstMeaningfulPersonValue(currentFields.Pistas, currentFields['Pistas rápidas'], currentFields.clues) ?? inferPersonClues(entry.name),
+      usoEnMesa:
+        firstMeaningfulPersonValue(currentFields['Uso en mesa'], currentFields.routine, currentFields.Rutina, currentFields.tableUse) ??
+        personFieldDefaults.usoEnMesa,
+    })
+
+    const { error } = await supabase
+      .from('lore_entries')
+      .update({ publicFields: nextPublicFields, updatedAt: now })
+      .eq('id', entry.id)
+
+    if (error) {
+      throw new Error(`Could not normalize person "${entry.name}" (${entry.id}): ${error.message}`)
+    }
+  }
+}
+
+function inferPersonFaction(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('sildar')) return 'Orden del Guantelete / Alianza de los Lores'
+  if (normalizedName.includes('boris') || normalizedName.includes('kamenov')) return 'Familia Kamenov'
+  if (normalizedName.includes('iarno') || normalizedName.includes('nezznar')) return 'Sangre de Bhaal'
+  if (normalizedName.includes('garaele')) return 'Harpers / investigacion local'
+  if (normalizedName.includes('reidoth')) return 'Enclave Esmeralda'
+  if (normalizedName.includes('halia')) return 'Zhentarim'
+
+  return 'Independiente'
+}
+
+function inferPersonRole(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('boris')) return 'Motor de la misión inicial y reclamante legal de las tierras de la Cueva del Eco.'
+  if (normalizedName.includes('kamenov')) return 'Red familiar de la reclamación minera; sube la presión si Boris desaparece.'
+  if (normalizedName.includes('nezznar')) return 'Antagonista en sombras, director de la Sangre de Bhaal y explotador secreto de la mina.'
+  if (normalizedName.includes('iarno')) return 'Rastro corrupto de la Alianza de los Lores; pieza muerta que oculta la profundidad de la secta.'
+  if (normalizedName.includes('sildar')) return 'Contacto honorable, escolta político y puente entre players, Tyr y la Alianza de los Lores.'
+  if (normalizedName.includes('garaele')) return 'Investigadora local que puede orientar hacia la existencia de una secta peligrosa.'
+  if (normalizedName.includes('reidoth')) return 'Druida observador que conecta el peligro de Venomfang con el equilibrio de la región.'
+  if (normalizedName.includes('gral')) return 'Jefe visible de los Anillos de Bronce y pantalla brutal de la conspiración.'
+  if (normalizedName.includes('hogger')) return 'Capataz violento de emboscadas; amenaza reconocible para la primera misión.'
+
+  return personFieldDefaults.rolCampana
+}
+
+function inferPersonRelation(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('boris')) return 'Patrón incómodo: necesita a los players, pero puede ocultarles cuánto dinero hay en juego.'
+  if (normalizedName.includes('kamenov')) return 'Aliados potenciales si los players protegen la reclamación familiar.'
+  if (normalizedName.includes('nezznar')) return 'Enemigo oculto; al principio debe sentirse como una firma invisible, no como un villano presente.'
+  if (normalizedName.includes('sildar')) return 'Aliado fiable y brújula moral si el grupo acepta trabajar con instituciones.'
+  if (normalizedName.includes('garaele')) return 'Contacto de investigación; recompensa observación, discreción y preguntas bien hechas.'
+  if (normalizedName.includes('reidoth')) return 'Aliado difícil: ayuda si el grupo respeta el equilibrio natural.'
+
+  return personFieldDefaults.relacionPlayers
+}
+
+function inferPersonClues(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('boris')) {
+    return 'Papeles con sellos antiguos; frases rusas de sus hermanos; nervios al hablar de porcentajes; miedo real cuando aparece la Alianza de los Lores.'
+  }
+
+  if (normalizedName.includes('kamenov')) {
+    return 'Cartas familiares, marcas de minería heredadas y versiones distintas del mismo documento de propiedad.'
+  }
+
+  if (normalizedName.includes('nezznar')) {
+    return 'Seda negra, veneno elegante, intermediarios que nunca lo han visto de frente y pagos que siempre vuelven a la Cueva del Eco.'
+  }
+
+  if (normalizedName.includes('iarno')) {
+    return 'Registros incompletos de la Alianza, cartas quemadas y una ausencia demasiado conveniente.'
+  }
+
+  if (normalizedName.includes('sildar')) {
+    return 'Símbolos de Tyr, preocupación por Iarno y contradicciones entre su misión oficial y lo que encuentra en Phandalin.'
+  }
+
+  if (normalizedName.includes('garaele')) {
+    return 'Preguntas sobre símbolos de sangre, cartas sin firma y miedo a que la amenaza sea más religiosa que criminal.'
+  }
+
+  if (normalizedName.includes('reidoth')) {
+    return 'Informes sobre Venomfang, daños en la tierra y señales de que la mina atrae intereses antinaturales.'
+  }
+
+  if (normalizedName.includes('gral') || normalizedName.includes('hogger')) {
+    return 'Órdenes torpes con cifra de herramientas, pagos de origen desconocido y desconocimiento real de quién está por encima.'
+  }
+
+  return personFieldDefaults.pistas
 }
 
 function createLoreLinkMap() {
