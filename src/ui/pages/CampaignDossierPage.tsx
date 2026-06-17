@@ -2,71 +2,68 @@ import { useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import {
   AlertTriangle,
+  BookOpen,
   CalendarDays,
   CheckCircle2,
-  Circle,
+  CircleAlert,
   Dice5,
   Eye,
   Flame,
+  Footprints,
   KeyRound,
   Minus,
+  Network,
   Plus,
-  RefreshCcw,
+  RefreshCw,
+  ShieldAlert,
   Skull,
   Sparkles,
+  Swords,
   Target,
   Trophy,
 } from 'lucide-react'
-import { bloodOfBhaalDossier, type DossierDiscovery } from '@shared/constants/phandelverDossier'
+import { bloodOfBhaalDossier } from '@shared/constants/phandelverDossier'
+import {
+  cultMoves,
+  cultStatDefinitions,
+  initialCultStats,
+  locationInvestigations,
+  randomStreetEvents,
+  underworldSignals,
+  type CultMove,
+  type CultStatId,
+  type DossierIconId,
+  type InvestigationMove,
+  type LocationInvestigation,
+  type StatDelta,
+  type StreetEvent,
+} from '@shared/constants/phandelverInvestigationGame'
 import { EmptyState } from '@ui/components/EmptyState'
 
 interface CampaignDossierPageProps {
   isDm: boolean
 }
 
-interface FactGridSource {
-  title: string
-  fields?: Array<{ label: string; value: string }>
-}
-
-type DiscoveryOutcome = 'success' | 'failure'
+type MoveOutcome = 'success' | 'failure'
 
 interface SessionLogEntry {
   id: string
-  tone: DiscoveryOutcome | 'day'
+  tone: 'player' | 'cult' | 'day' | 'warning'
   text: string
 }
 
-const initialDayDiscoveryIds = ['errand-kid-watching', 'chalk-color-crossing', 'laundering-tavern']
-const dayEventCounts = [2, 3, 3, 4]
-const heatMax = 6
-
-const clockRewardMatchers = [
-  { clockId: 'bhaal-system', labels: ['Sistema de Bhaal', 'Tapaderas', 'Operativos', 'Rutas'] },
-  { clockId: 'cipher-system', labels: ['Cifrado'] },
-  { clockId: 'permit-trail', labels: ['Permiso'] },
-  { clockId: 'mansion-access', labels: ['Acceso mansión', 'Mansión'] },
-]
+interface ActiveEffect {
+  id: string
+  source: 'players' | 'cult'
+  text: string
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
 }
 
-function renderFactGrid(item: FactGridSource) {
-  if (!item.fields?.length) {
-    return null
-  }
-
-  return (
-    <dl className="dossier-fact-grid" aria-label={`Datos de ${item.title}`}>
-      {item.fields.map((field) => (
-        <div key={`${item.title}-${field.label}`}>
-          <dt>{field.label}</dt>
-          <dd>{field.value}</dd>
-        </div>
-      ))}
-    </dl>
-  )
+function randomIndex(length: number) {
+  return Math.floor(Math.random() * length)
 }
 
 function renderDetailList(title: string, items?: string[]) {
@@ -86,105 +83,145 @@ function renderDetailList(title: string, items?: string[]) {
   )
 }
 
-function getDiscoveryById(discoveryId: string) {
-  return (bloodOfBhaalDossier.discoveries as readonly DossierDiscovery[]).find((discovery) => discovery.id === discoveryId)
-}
-
-function getClockRewards(discovery: DossierDiscovery) {
-  const matchedClockIds = new Set<string>()
-
-  discovery.rewards?.forEach((reward) => {
-    clockRewardMatchers.forEach((matcher) => {
-      if (matcher.labels.some((label) => reward.label.includes(label))) {
-        matchedClockIds.add(matcher.clockId)
-      }
-    })
-  })
-
-  if (!matchedClockIds.size) {
-    if (discovery.category === 'communications') {
-      matchedClockIds.add('cipher-system')
-    } else if (discovery.category === 'mansion') {
-      matchedClockIds.add('mansion-access')
-    } else {
-      matchedClockIds.add('bhaal-system')
-    }
+function getMoveProgress(move: InvestigationMove) {
+  const explicitProgress = move.progress ?? []
+  if (explicitProgress.length) {
+    return explicitProgress
   }
 
-  return Array.from(matchedClockIds)
-}
-
-function pickRandomDiscoveries(outcomes: Record<string, DiscoveryOutcome>, count: number) {
-  const discoveries = bloodOfBhaalDossier.discoveries as readonly DossierDiscovery[]
-  const unresolved = discoveries.filter((discovery) => outcomes[discovery.id] !== 'success')
-  const pool = unresolved.length >= count ? unresolved : discoveries
-  return [...pool]
-    .sort(() => Math.random() - 0.5)
-    .slice(0, count)
-    .map((discovery) => discovery.id)
-}
-
-function getHeatLabel(heat: number) {
-  if (heat <= 1) {
-    return 'La red está cómoda'
+  if (move.discoveryId?.includes('piano') || move.discoveryId?.includes('mansion')) {
+    return [{ clockId: 'mansion-access', delta: 1 }]
   }
-  if (heat <= 3) {
-    return 'El Mata Osos sospecha'
+  if (move.discoveryId?.includes('cipher') || move.discoveryId?.includes('pigeon') || move.discoveryId?.includes('dovecote')) {
+    return [{ clockId: 'cipher-system', delta: 1 }]
   }
-  if (heat <= 5) {
-    return 'La ciudad se cierra'
-  }
-  return 'Caza abierta'
+  return [{ clockId: 'bhaal-system', delta: 1 }]
 }
 
-function getPrimaryBenefit(discovery: DossierDiscovery) {
-  return discovery.rewards?.map((reward) => `${reward.label}: ${reward.value}`) ?? ['Sube una pista de progreso relacionada.']
+function renderDossierIcon(icon: DossierIconId, size: number) {
+  const props = { 'aria-hidden': true, size }
+
+  switch (icon) {
+    case 'alert':
+      return <AlertTriangle {...props} />
+    case 'book':
+      return <BookOpen {...props} />
+    case 'calendar':
+      return <CalendarDays {...props} />
+    case 'cipher':
+      return <KeyRound {...props} />
+    case 'eye':
+      return <Eye {...props} />
+    case 'flame':
+      return <Flame {...props} />
+    case 'footprints':
+      return <Footprints {...props} />
+    case 'network':
+      return <Network {...props} />
+    case 'shield':
+      return <ShieldAlert {...props} />
+    case 'skull':
+      return <Skull {...props} />
+    case 'spark':
+      return <Sparkles {...props} />
+    case 'swords':
+      return <Swords {...props} />
+    case 'target':
+      return <Target {...props} />
+    default:
+      return <Sparkles {...props} />
+  }
 }
 
-function getPrimarySetback(discovery: DossierDiscovery) {
-  return discovery.complications ?? ['El Mata Osos gana presión y mueve una pieza antes del siguiente día.']
+function getCultPressureLabel(cultStats: Record<CultStatId, number>) {
+  const pressure = cultStats.trace + cultStats.intent + cultStats.neutralize
+  if (pressure <= 4) {
+    return 'La red tantea'
+  }
+  if (pressure <= 9) {
+    return 'El Mata Osos entiende el patrón'
+  }
+  if (pressure <= 14) {
+    return 'Neutralización en marcha'
+  }
+  return 'Día crítico'
+}
+
+function getCultPressureValue(cultStats: Record<CultStatId, number>) {
+  return cultStats.trace + cultStats.intent + cultStats.neutralize
 }
 
 export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
-  const [activeDiscoveryCategory, setActiveDiscoveryCategory] = useState<string>('all')
-  const [usedDiscoveryIds, setUsedDiscoveryIds] = useState<string[]>([])
-  const [discoveryOutcomes, setDiscoveryOutcomes] = useState<Record<string, DiscoveryOutcome>>({})
   const [campaignDay, setCampaignDay] = useState(1)
-  const [dayEventLimit, setDayEventLimit] = useState(initialDayDiscoveryIds.length)
-  const [currentDayDiscoveryIds, setCurrentDayDiscoveryIds] = useState(initialDayDiscoveryIds)
-  const [dailyOperationIndex, setDailyOperationIndex] = useState(0)
-  const [heat, setHeat] = useState(1)
+  const [activeLocationId, setActiveLocationId] = useState(locationInvestigations[0].id)
+  const [streetEventIndex, setStreetEventIndex] = useState(0)
+  const [cultMoveIndex, setCultMoveIndex] = useState(0)
+  const [playerActionResolved, setPlayerActionResolved] = useState(false)
+  const [cultActionResolved, setCultActionResolved] = useState(false)
+  const [dayNotice, setDayNotice] = useState('Día 1 iniciado: la secta observa, los players eligen dónde meter presión.')
+  const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([])
+  const [cultStats, setCultStats] = useState<Record<CultStatId, number>>(initialCultStats)
   const [sessionLog, setSessionLog] = useState<SessionLogEntry[]>([
     {
       id: 'day-1-start',
       tone: 'day',
-      text: 'Día 1: el pueblo parece normal, pero ya hay ojos pequeños, tiza y dinero moviéndose bajo la superficie.',
+      text: 'Día 1: una acción de players, una acción de la secta y un evento urbano posible.',
     },
   ])
   const [clockValues, setClockValues] = useState<Record<string, number>>(() =>
     Object.fromEntries(bloodOfBhaalDossier.clocks.map((clock) => [clock.id, clock.initial])),
   )
 
-  const visibleDiscoveries = useMemo(
-    () =>
-      activeDiscoveryCategory === 'all'
-        ? bloodOfBhaalDossier.discoveries
-        : bloodOfBhaalDossier.discoveries.filter((discovery) => discovery.category === activeDiscoveryCategory),
-    [activeDiscoveryCategory],
+  const activeLocation = useMemo(
+    () => locationInvestigations.find((investigation) => investigation.id === activeLocationId) ?? locationInvestigations[0],
+    [activeLocationId],
   )
-
-  const currentDayDiscoveries = useMemo(
-    () => currentDayDiscoveryIds.map(getDiscoveryById).filter((discovery): discovery is DossierDiscovery => Boolean(discovery)),
-    [currentDayDiscoveryIds],
-  )
-
-  const dailyOperation = bloodOfBhaalDossier.dailyOperations[dailyOperationIndex] ?? bloodOfBhaalDossier.dailyOperations[0]
-  const resolvedToday = currentDayDiscoveries.filter((discovery) => discoveryOutcomes[discovery.id]).length
+  const streetEvent = randomStreetEvents[streetEventIndex] ?? randomStreetEvents[0]
+  const cultMove = cultMoves[cultMoveIndex] ?? cultMoves[0]
   const totalProgress = bloodOfBhaalDossier.clocks.reduce((sum, clock) => sum + (clockValues[clock.id] ?? clock.initial), 0)
   const maxProgress = bloodOfBhaalDossier.clocks.reduce((sum, clock) => sum + clock.max, 0)
+  const cultPressure = getCultPressureValue(cultStats)
+  const canEndDay = playerActionResolved && cultActionResolved
 
   function addLog(entry: Omit<SessionLogEntry, 'id'>) {
-    setSessionLog((current) => [{ ...entry, id: `${Date.now()}-${Math.random()}` }, ...current].slice(0, 8))
+    setSessionLog((current) => [{ ...entry, id: `${Date.now()}-${Math.random()}` }, ...current].slice(0, 9))
+  }
+
+  function addEffect(effect: Omit<ActiveEffect, 'id'>) {
+    setActiveEffects((current) => [{ ...effect, id: `${Date.now()}-${Math.random()}` }, ...current].slice(0, 5))
+  }
+
+  function applyCultStatDeltas(deltas?: StatDelta[]) {
+    if (!deltas?.length) {
+      return
+    }
+
+    setCultStats((current) => {
+      const nextStats = { ...current }
+      deltas.forEach((delta) => {
+        const statDefinition = cultStatDefinitions.find((stat) => stat.id === delta.stat)
+        if (!statDefinition) {
+          return
+        }
+        nextStats[delta.stat] = clamp((nextStats[delta.stat] ?? 0) + delta.delta, 0, statDefinition.max)
+      })
+      return nextStats
+    })
+  }
+
+  function applyClockProgress(move: InvestigationMove) {
+    const progressEntries = getMoveProgress(move)
+    setClockValues((current) => {
+      const nextValues = { ...current }
+      progressEntries.forEach((entry) => {
+        const clock = bloodOfBhaalDossier.clocks.find((candidate) => candidate.id === entry.clockId)
+        if (!clock) {
+          return
+        }
+        nextValues[entry.clockId] = clamp((nextValues[entry.clockId] ?? clock.initial) + entry.delta, 0, clock.max)
+      })
+      return nextValues
+    })
   }
 
   function nudgeClock(clockId: string, delta: number) {
@@ -199,98 +236,107 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
     })
   }
 
-  function applyClockRewards(discovery: DossierDiscovery) {
-    const rewardClockIds = getClockRewards(discovery)
-    setClockValues((current) => {
-      const nextValues = { ...current }
-
-      rewardClockIds.forEach((clockId) => {
-        const clock = bloodOfBhaalDossier.clocks.find((candidate) => candidate.id === clockId)
-        if (!clock) {
-          return
-        }
-        nextValues[clockId] = clamp((nextValues[clockId] ?? clock.initial) + 1, 0, clock.max)
-      })
-
-      return nextValues
-    })
-  }
-
-  function toggleDiscoveryUsed(discoveryId: string) {
-    setUsedDiscoveryIds((current) =>
-      current.includes(discoveryId) ? current.filter((usedDiscoveryId) => usedDiscoveryId !== discoveryId) : [...current, discoveryId],
-    )
-  }
-
-  function resolveDiscovery(discovery: DossierDiscovery, outcome: DiscoveryOutcome) {
-    if (discoveryOutcomes[discovery.id]) {
+  function resolvePlayerMove(move: LocationInvestigation | StreetEvent, outcome: MoveOutcome) {
+    if (playerActionResolved) {
+      setDayNotice('Los players ya han gastado su acción del día. Finaliza el día o reabre manualmente en la siguiente ronda.')
       return
     }
 
-    setDiscoveryOutcomes((current) => ({ ...current, [discovery.id]: outcome }))
-    setUsedDiscoveryIds((current) => (current.includes(discovery.id) ? current : [...current, discovery.id]))
+    setPlayerActionResolved(true)
 
     if (outcome === 'success') {
-      applyClockRewards(discovery)
-      setHeat((current) => clamp(current - 1, 0, heatMax))
-      addLog({
-        tone: 'success',
-        text: `Éxito en "${discovery.title}": ${getPrimaryBenefit(discovery)[0]}`,
-      })
+      applyClockProgress(move)
+      applyCultStatDeltas(move.cultStatsOnSuccess)
+      addEffect({ source: 'players', text: move.playerBuff ?? 'La próxima investigación empieza con una pista clara.' })
+      addLog({ tone: 'player', text: `Players: éxito en "${move.title}". ${move.success}` })
+      setDayNotice(`Acción player resuelta: éxito en ${move.title}.`)
       return
     }
 
-    setHeat((current) => clamp(current + 1, 0, heatMax))
-    addLog({
-      tone: 'failure',
-      text: `Fallo en "${discovery.title}": ${getPrimarySetback(discovery)[0]}`,
-    })
+    applyCultStatDeltas(move.cultStatsOnFailure)
+    addEffect({ source: 'cult', text: move.cultBuff ?? 'La secta gana una ventaja de posicionamiento.' })
+    addLog({ tone: 'warning', text: `Players: fallo o abandono en "${move.title}". ${move.failure}` })
+    setDayNotice(`Acción player resuelta con coste: ${move.failure}`)
   }
 
-  function reopenDiscovery(discoveryId: string) {
-    setDiscoveryOutcomes((current) => {
-      const nextOutcomes = { ...current }
-      delete nextOutcomes[discoveryId]
-      return nextOutcomes
-    })
-    addLog({
-      tone: 'day',
-      text: 'Has reabierto una escena. Ajusta los relojes manualmente si ya habías aplicado sus consecuencias.',
-    })
+  function resolveCultMove(move: CultMove, outcome: MoveOutcome) {
+    if (cultActionResolved) {
+      setDayNotice('La secta ya ha hecho su acción de esta ronda.')
+      return
+    }
+
+    setCultActionResolved(true)
+
+    if (outcome === 'success') {
+      applyCultStatDeltas(move.cultStatsOnSuccess)
+      addEffect({ source: 'players', text: move.playerBuff ?? 'La red deja una grieta aprovechable.' })
+      addLog({ tone: 'player', text: `Secta frustrada: ${move.success}` })
+      setDayNotice(`Acción de la secta bloqueada: ${move.title}.`)
+      return
+    }
+
+    applyCultStatDeltas(move.cultStatsOnFailure)
+    addEffect({ source: 'cult', text: move.cultBuff ?? 'La próxima DC relevante sube +1.' })
+    addLog({ tone: 'cult', text: `Secta avanza: ${move.ifUnopposed}` })
+    setDayNotice(`La secta avanza: ${move.title}.`)
   }
 
-  function advanceDay() {
+  function skipPlayerAction() {
+    if (playerActionResolved) {
+      return
+    }
+
+    setPlayerActionResolved(true)
+    applyCultStatDeltas([{ stat: 'trace', delta: 1 }])
+    addEffect({ source: 'cult', text: 'Los players no meten presión: +1 Rastro del grupo.' })
+    addLog({ tone: 'warning', text: 'Players pasan el día sin investigar una pista concreta. La red aprovecha el silencio.' })
+    setDayNotice('Los players pasan acción. La secta lee ausencia de movimiento como información.')
+  }
+
+  function rotateStreetEvent() {
+    setStreetEventIndex(randomIndex(randomStreetEvents.length))
+    setDayNotice('Evento urbano random cambiado para esta ronda.')
+  }
+
+  function endDay() {
+    if (!canEndDay) {
+      setDayNotice('Para cerrar el día falta resolver una acción player y una acción de la secta.')
+      return
+    }
+
     const nextDay = campaignDay + 1
-    const nextEventLimit = dayEventCounts[Math.floor(Math.random() * dayEventCounts.length)]
-    const nextOperationIndex = Math.floor(Math.random() * bloodOfBhaalDossier.dailyOperations.length)
-    const nextDiscoveryIds = pickRandomDiscoveries(discoveryOutcomes, nextEventLimit)
-    const nextOperation = bloodOfBhaalDossier.dailyOperations[nextOperationIndex]
+    const nextStreetEventIndex = randomIndex(randomStreetEvents.length)
+    const nextCultMoveIndex = randomIndex(cultMoves.length)
 
     setCampaignDay(nextDay)
-    setDayEventLimit(nextEventLimit)
-    setDailyOperationIndex(nextOperationIndex)
-    setCurrentDayDiscoveryIds(nextDiscoveryIds)
-    setHeat((current) => clamp(current + (current >= 4 ? 1 : 0), 0, heatMax))
+    setStreetEventIndex(nextStreetEventIndex)
+    setCultMoveIndex(nextCultMoveIndex)
+    setPlayerActionResolved(false)
+    setCultActionResolved(false)
+    setActiveEffects((current) => current.slice(0, 3))
+    setDayNotice(`Día ${campaignDay} cerrado. Día ${nextDay}: nuevo evento urbano y nueva acción de El Mata Osos.`)
     addLog({
       tone: 'day',
-      text: `Día ${nextDay}: aparecen ${nextEventLimit} frentes activos. Operación enemiga: ${nextOperation.title}.`,
+      text: `Fin del día ${campaignDay}. Presión enemiga ${cultPressure}/18. Progreso player ${totalProgress}/${maxProgress}.`,
     })
   }
 
   function resetInvestigation() {
-    setDiscoveryOutcomes({})
-    setUsedDiscoveryIds([])
     setCampaignDay(1)
-    setDayEventLimit(initialDayDiscoveryIds.length)
-    setCurrentDayDiscoveryIds(initialDayDiscoveryIds)
-    setDailyOperationIndex(0)
-    setHeat(1)
+    setActiveLocationId(locationInvestigations[0].id)
+    setStreetEventIndex(0)
+    setCultMoveIndex(0)
+    setPlayerActionResolved(false)
+    setCultActionResolved(false)
+    setDayNotice('Día 1 reiniciado: la secta vuelve a operar desde cobertura completa.')
+    setActiveEffects([])
+    setCultStats(initialCultStats)
     setClockValues(Object.fromEntries(bloodOfBhaalDossier.clocks.map((clock) => [clock.id, clock.initial])))
     setSessionLog([
       {
-        id: 'day-1-start-reset',
+        id: 'day-1-reset',
         tone: 'day',
-        text: 'Día 1: investigación reiniciada. La Sangre de Bhaal vuelve a moverse desde las sombras.',
+        text: 'Investigación reiniciada. Una acción player, una acción secta, un evento urbano posible.',
       },
     ])
   }
@@ -304,12 +350,12 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
   }
 
   return (
-    <section className="page-grid dossier-page" aria-labelledby="dossier-title">
-      <header className="page-header dossier-header">
+    <section className="page-grid dossier-page dossier-game-page" aria-labelledby="dossier-title">
+      <header className="page-header dossier-header compact-dossier-header">
         <div>
-          <p className="eyebrow">Dossier secreto de campaña</p>
-          <h2 id="dossier-title">{bloodOfBhaalDossier.title}</h2>
-          <p>{bloodOfBhaalDossier.subtitle}</p>
+          <p className="eyebrow">Dossier DM · minijuego urbano</p>
+          <h2 id="dossier-title">Sangre de Bhaal contra los players</h2>
+          <p>Una ronda diaria: los players investigan un frente; El Mata Osos intenta rastrearlos, leerlos y neutralizarlos.</p>
         </div>
         <div className="avatar-chip danger-chip">
           <Skull size={18} aria-hidden="true" />
@@ -317,147 +363,281 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
         </div>
       </header>
 
-      <article className="dossier-intro section-panel">
-        <div>
-          <p className="eyebrow">Premisa</p>
-          <p>{bloodOfBhaalDossier.premise}</p>
-        </div>
-        <div>
-          <p className="eyebrow">Doctrina operativa</p>
-          <p>{bloodOfBhaalDossier.doctrine}</p>
-        </div>
-      </article>
+      <section className="dossier-command-grid" aria-label="Estado de la ronda">
+        <article className="dossier-command-card">
+          <CalendarDays size={22} aria-hidden="true" />
+          <span>Día</span>
+          <strong>{campaignDay}</strong>
+        </article>
+        <article className={playerActionResolved ? 'dossier-command-card is-done' : 'dossier-command-card'}>
+          {playerActionResolved ? <CheckCircle2 size={22} aria-hidden="true" /> : <Trophy size={22} aria-hidden="true" />}
+          <span>Acción player</span>
+          <strong>{playerActionResolved ? 'Hecha' : 'Libre'}</strong>
+        </article>
+        <article className={cultActionResolved ? 'dossier-command-card is-done' : 'dossier-command-card is-danger'}>
+          <Flame size={22} aria-hidden="true" />
+          <span>Acción secta</span>
+          <strong>{cultActionResolved ? 'Hecha' : 'Pendiente'}</strong>
+        </article>
+        <article className="dossier-command-card">
+          <Target size={22} aria-hidden="true" />
+          <span>Progreso</span>
+          <strong>
+            {totalProgress}/{maxProgress}
+          </strong>
+        </article>
+        <article className={`dossier-command-card ${cultPressure >= 10 ? 'is-danger' : ''}`}>
+          <CircleAlert size={22} aria-hidden="true" />
+          <span>{getCultPressureLabel(cultStats)}</span>
+          <strong>{cultPressure}/18</strong>
+        </article>
+      </section>
 
-      <div className="dossier-metrics" aria-label="Resumen operativo">
-        {bloodOfBhaalDossier.metrics.map((metric) => (
-          <section className="dossier-metric" key={metric.label}>
-            <span>{metric.label}</span>
-            <strong>{metric.value}</strong>
-            <small>{metric.detail}</small>
-          </section>
-        ))}
+      <div className="dossier-day-notice" role="status">
+        <Sparkles size={18} aria-hidden="true" />
+        <span>{dayNotice}</span>
       </div>
 
-      <section className="dossier-game section-panel" aria-labelledby="dossier-game-title">
+      <section className="dossier-loop-grid" aria-label="Acciones de la ronda">
+        <article className="dossier-move-card cult-move-card">
+          <div className="dossier-move-heading">
+            {renderDossierIcon(cultMove.icon, 28)}
+            <div>
+              <p className="eyebrow">Acción de El Mata Osos</p>
+              <h3>{cultMove.title}</h3>
+              <p>{cultMove.objective}</p>
+            </div>
+          </div>
+          <p className="dossier-move-callout">{cultMove.challenge}</p>
+          <div className="dossier-detail-columns">
+            {renderDetailList('Señales', cultMove.tells)}
+            {renderDetailList('Si avanza', [cultMove.ifUnopposed])}
+          </div>
+          <div className="dossier-choice-bar">
+            <button className="success-action" disabled={cultActionResolved} onClick={() => resolveCultMove(cultMove, 'success')} type="button">
+              <ShieldAlert size={16} aria-hidden="true" />
+              Frustrada
+            </button>
+            <button className="danger-action" disabled={cultActionResolved} onClick={() => resolveCultMove(cultMove, 'failure')} type="button">
+              <Flame size={16} aria-hidden="true" />
+              Avanza
+            </button>
+          </div>
+        </article>
+
+        <article className="dossier-move-card street-event-card">
+          <div className="dossier-move-heading">
+            {renderDossierIcon(streetEvent.icon, 28)}
+            <div>
+              <p className="eyebrow">Evento random de calle</p>
+              <h3>{streetEvent.title}</h3>
+              <p>Puede aparecer mientras caminan, compran, preguntan o cruzan la ciudad.</p>
+            </div>
+          </div>
+          <p className="dossier-move-callout">{streetEvent.challenge}</p>
+          <div className="dossier-detail-columns">
+            {renderDetailList('Señales', streetEvent.tells)}
+            {renderDetailList('Éxito', [streetEvent.success])}
+            {renderDetailList('Fallo / ignorarlo', [streetEvent.failure])}
+          </div>
+          <div className="dossier-choice-bar">
+            <button className="success-action" disabled={playerActionResolved} onClick={() => resolvePlayerMove(streetEvent, 'success')} type="button">
+              <Trophy size={16} aria-hidden="true" />
+              Seguir evento
+            </button>
+            <button className="danger-action" disabled={playerActionResolved} onClick={() => resolvePlayerMove(streetEvent, 'failure')} type="button">
+              <AlertTriangle size={16} aria-hidden="true" />
+              Dejar pasar
+            </button>
+            <button className="ghost-button" onClick={rotateStreetEvent} type="button">
+              <RefreshCw size={16} aria-hidden="true" />
+              Otro random
+            </button>
+          </div>
+        </article>
+      </section>
+
+      <section className="dossier-player-panel section-panel" aria-labelledby="player-action-title">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Juego de investigación</p>
-            <h3 id="dossier-game-title">Día {campaignDay}: decisiones en Phandalin</h3>
+            <p className="eyebrow">Acción de los players</p>
+            <h3 id="player-action-title">Dónde deciden investigar</h3>
           </div>
           <Dice5 size={22} aria-hidden="true" />
         </div>
 
-        <div className="dossier-game-board">
-          <article className="dossier-status-card">
-            <CalendarDays size={22} aria-hidden="true" />
-            <span>Frentes activos</span>
-            <strong>
-              {resolvedToday}/{dayEventLimit}
-            </strong>
-            <p>Resuelve cada escena con tiradas, rol, combate o deducción. El éxito revela estructura; el fallo da ventaja a la secta.</p>
-          </article>
-          <article className="dossier-status-card">
-            <Target size={22} aria-hidden="true" />
-            <span>Progreso global</span>
-            <strong>
-              {totalProgress}/{maxProgress}
-            </strong>
-            <p>Cuando los relojes se llenen, la ruta lleva al permiso bajo la mansión y al piano de Dies Irae.</p>
-          </article>
-          <article className={`dossier-status-card heat-${heat}`}>
-            <Flame size={22} aria-hidden="true" />
-            <span>Presión enemiga</span>
-            <strong>
-              {heat}/{heatMax}
-            </strong>
-            <p>{getHeatLabel(heat)}. A presión alta, El Mata Osos mueve alijos, silencia testigos y cierra rutas.</p>
-          </article>
-        </div>
-
-        <article className="dossier-operation-card">
-          <div className="dossier-operation-roll">{dailyOperation.roll}</div>
-          <div>
-            <p className="eyebrow">Operación enemiga del día</p>
-            <h4>{dailyOperation.title}</h4>
-            <p>{dailyOperation.routine}</p>
-            <div className="dossier-detail-columns">
-              {renderDetailList('Señales en la ciudad', dailyOperation.signs)}
-              {renderDetailList('Cómo interceptarlo', dailyOperation.counterplay)}
-              {renderDetailList('Si no lo paran', dailyOperation.consequences)}
-            </div>
+        <div className="dossier-location-shell">
+          <div className="dossier-location-tabs" role="tablist" aria-label="Localizaciones investigables">
+            {locationInvestigations.map((investigation) => {
+              const isActive = investigation.id === activeLocation.id
+              return (
+                <button
+                  aria-selected={isActive}
+                  className={isActive ? 'is-active' : undefined}
+                  key={investigation.id}
+                  onClick={() => setActiveLocationId(investigation.id)}
+                  role="tab"
+                  type="button"
+                >
+                  {renderDossierIcon(investigation.icon, 16)}
+                  <span>{investigation.location}</span>
+                </button>
+              )
+            })}
           </div>
-        </article>
 
-        <div className="dossier-day-controls">
-          <button className="primary-action" onClick={advanceDay} type="button">
-            <RefreshCcw size={16} aria-hidden="true" />
-            Generar siguiente día
-          </button>
-          <button className="ghost-button" onClick={resetInvestigation} type="button">
-            Reiniciar investigación
-          </button>
+          <article className="dossier-location-detail" role="tabpanel">
+            <div className="dossier-move-heading">
+              {renderDossierIcon(activeLocation.icon, 30)}
+              <div>
+                <p className="eyebrow">{activeLocation.location}</p>
+                <h3>{activeLocation.title}</h3>
+                <p>{activeLocation.challenge}</p>
+              </div>
+            </div>
+            <div className="dossier-detail-columns">
+              {renderDetailList('Qué ven', activeLocation.tells)}
+              {renderDetailList('Éxito', [activeLocation.success])}
+              {renderDetailList('Fallo', [activeLocation.failure])}
+              {renderDetailList('Buff/debuff', [activeLocation.playerBuff ?? '', activeLocation.cultBuff ?? ''].filter(Boolean))}
+            </div>
+            <div className="dossier-choice-bar">
+              <button className="success-action" disabled={playerActionResolved} onClick={() => resolvePlayerMove(activeLocation, 'success')} type="button">
+                <Trophy size={16} aria-hidden="true" />
+                Éxito player
+              </button>
+              <button className="danger-action" disabled={playerActionResolved} onClick={() => resolvePlayerMove(activeLocation, 'failure')} type="button">
+                <AlertTriangle size={16} aria-hidden="true" />
+                Fallo / coste
+              </button>
+              <button className="ghost-button" disabled={playerActionResolved} onClick={skipPlayerAction} type="button">
+                Pasan acción
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="dossier-tracking-shell" aria-label="Tracking de investigación">
+        <div className="dossier-mini-track">
+          <div className="panel-heading compact">
+            <div>
+              <p className="eyebrow">Descubrimiento player</p>
+              <h3>Lo que van entendiendo</h3>
+            </div>
+            <KeyRound size={20} aria-hidden="true" />
+          </div>
+          <div className="dossier-compact-clock-grid">
+            {bloodOfBhaalDossier.clocks.map((clock) => {
+              const value = clockValues[clock.id] ?? clock.initial
+              return (
+                <article className="dossier-compact-clock" key={clock.id}>
+                  <div>
+                    <h4>{clock.title}</h4>
+                    <strong>
+                      {value}/{clock.max}
+                    </strong>
+                  </div>
+                  <div className="dossier-clock-track" style={{ '--clock-slots': clock.max } as CSSProperties} aria-hidden="true">
+                    {Array.from({ length: clock.max }).map((_, index) => (
+                      <span className={index < value ? 'is-filled' : undefined} key={`${clock.id}-${index}`} />
+                    ))}
+                  </div>
+                  <div className="dossier-clock-controls">
+                    <button className="icon-button" onClick={() => nudgeClock(clock.id, -1)} title={`Bajar ${clock.title}`} type="button">
+                      <Minus size={15} aria-hidden="true" />
+                    </button>
+                    <button className="icon-button" onClick={() => nudgeClock(clock.id, 1)} title={`Subir ${clock.title}`} type="button">
+                      <Plus size={15} aria-hidden="true" />
+                    </button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
         </div>
 
-        <div className="dossier-day-grid" aria-label="Encuentros activos del día">
-          {currentDayDiscoveries.map((discovery, index) => {
-            const category = bloodOfBhaalDossier.discoveryCategories.find((candidate) => candidate.id === discovery.category)
-            const outcome = discoveryOutcomes[discovery.id]
-            return (
-              <article className={outcome ? `dossier-day-event is-${outcome}` : 'dossier-day-event'} key={discovery.id}>
-                <div className="dossier-event-heading">
+        <div className="dossier-mini-track">
+          <div className="panel-heading compact">
+            <div>
+              <p className="eyebrow">Máquina enemiga</p>
+              <h3>Lo que la secta está logrando</h3>
+            </div>
+            <Flame size={20} aria-hidden="true" />
+          </div>
+          <div className="dossier-cult-stat-grid">
+            {cultStatDefinitions.map((stat) => {
+              const value = cultStats[stat.id]
+              return (
+                <article className={value >= stat.dangerAt ? 'dossier-cult-stat is-danger' : 'dossier-cult-stat'} key={stat.id}>
+                  {renderDossierIcon(stat.icon, 20)}
                   <div>
-                    <span>
-                      Escena {index + 1} · {category?.label ?? discovery.category}
-                    </span>
-                    <h4>{discovery.title}</h4>
+                    <span>{stat.label}</span>
+                    <strong>
+                      {value}/{stat.max}
+                    </strong>
+                    <p>{stat.detail}</p>
                   </div>
-                  {outcome ? (
-                    <strong className={`dossier-result-chip is-${outcome}`}>{outcome === 'success' ? 'Éxito' : 'Fallo'}</strong>
-                  ) : (
-                    <strong className="dossier-result-chip">Pendiente</strong>
-                  )}
-                </div>
-                <p>{discovery.trigger}</p>
-                <p className="dossier-setup-line">{discovery.setup}</p>
-                <div className="dossier-challenge-strip">
-                  <span>{discovery.challengeKind}</span>
-                  <strong>{discovery.difficulty}</strong>
-                </div>
-                <p className="dossier-goal-line">{discovery.goal}</p>
-                <div className="dossier-detail-columns">
-                  {renderDetailList('Reto / DC', discovery.checks)}
-                  {renderDetailList('Pistas', discovery.clues)}
-                  {renderDetailList('Beneficio por éxito', getPrimaryBenefit(discovery))}
-                  {renderDetailList('Coste por fallo', getPrimarySetback(discovery))}
-                  {renderDetailList('Siguientes pistas', discovery.nextLeads)}
-                </div>
-                <div className="dossier-choice-bar">
-                  <button className="success-action" disabled={Boolean(outcome)} onClick={() => resolveDiscovery(discovery, 'success')} type="button">
-                    <Trophy size={16} aria-hidden="true" />
-                    Éxito
-                  </button>
-                  <button className="danger-action" disabled={Boolean(outcome)} onClick={() => resolveDiscovery(discovery, 'failure')} type="button">
-                    <AlertTriangle size={16} aria-hidden="true" />
-                    Fallo / coste
-                  </button>
-                  {outcome ? (
-                    <button className="ghost-button" onClick={() => reopenDiscovery(discovery.id)} type="button">
-                      Reabrir
-                    </button>
-                  ) : null}
+                </article>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="dossier-underworld section-panel" aria-labelledby="underworld-title">
+        <div className="panel-heading compact">
+          <div>
+            <p className="eyebrow">Red de pícaros</p>
+            <h3 id="underworld-title">Herramientas ocultas del pueblo</h3>
+          </div>
+          <Network size={20} aria-hidden="true" />
+        </div>
+        <div className="underworld-signal-grid">
+          {underworldSignals.map((signal) => {
+            return (
+              <article className="underworld-signal" key={signal.id}>
+                {renderDossierIcon(signal.icon, 18)}
+                <div>
+                  <strong>{signal.label}</strong>
+                  <span>{signal.detail}</span>
                 </div>
               </article>
             )
           })}
         </div>
+      </section>
 
-        <aside className="dossier-session-log" aria-label="Crónica de investigación">
+      <section className="dossier-bottom-grid" aria-label="Modificadores y crónica">
+        <article className="dossier-session-log">
           <div className="panel-heading compact">
             <div>
-              <p className="eyebrow">Crónica viva</p>
-              <h4>Consecuencias recientes</h4>
+              <p className="eyebrow">Buffs / debuffs activos</p>
+              <h3>Ventajas temporales</h3>
             </div>
             <Sparkles size={18} aria-hidden="true" />
+          </div>
+          {activeEffects.length ? (
+            <ol>
+              {activeEffects.map((effect) => (
+                <li className={effect.source === 'players' ? 'is-success' : 'is-failure'} key={effect.id}>
+                  {effect.source === 'players' ? 'Players: ' : 'Secta: '}
+                  {effect.text}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p>No hay modificadores activos todavía.</p>
+          )}
+        </article>
+
+        <article className="dossier-session-log">
+          <div className="panel-heading compact">
+            <div>
+              <p className="eyebrow">Crónica</p>
+              <h3>Últimas consecuencias</h3>
+            </div>
+            <BookOpen size={18} aria-hidden="true" />
           </div>
           <ol>
             {sessionLog.map((entry) => (
@@ -466,135 +646,18 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
               </li>
             ))}
           </ol>
-        </aside>
+        </article>
       </section>
 
-      <section className="dossier-clocks section-panel" aria-label="Relojes operativos">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Relojes de misterio</p>
-            <h3>Progreso visible de la investigación</h3>
-          </div>
-          <KeyRound size={22} aria-hidden="true" />
-        </div>
-        <div className="dossier-clock-grid">
-          {bloodOfBhaalDossier.clocks.map((clock) => {
-            const value = clockValues[clock.id] ?? clock.initial
-            return (
-              <article className="dossier-clock" key={clock.id}>
-                <div className="dossier-clock-heading">
-                  <div>
-                    <h4>{clock.title}</h4>
-                    <p>{clock.detail}</p>
-                  </div>
-                  <div className="dossier-clock-controls">
-                    <button className="icon-button" onClick={() => nudgeClock(clock.id, -1)} title={`Bajar ${clock.title}`} type="button">
-                      <Minus size={15} aria-hidden="true" />
-                    </button>
-                    <strong>{value}/{clock.max}</strong>
-                    <button className="icon-button" onClick={() => nudgeClock(clock.id, 1)} title={`Subir ${clock.title}`} type="button">
-                      <Plus size={15} aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-                <div className="dossier-clock-track" style={{ '--clock-slots': clock.max } as CSSProperties} aria-hidden="true">
-                  {Array.from({ length: clock.max }).map((_, index) => (
-                    <span className={index < value ? 'is-filled' : undefined} key={`${clock.id}-${index}`} />
-                  ))}
-                </div>
-                <ol className="dossier-clock-segments">
-                  {clock.segments.map((segment, index) => (
-                    <li className={index < value ? 'is-active' : undefined} key={segment}>
-                      {segment}
-                    </li>
-                  ))}
-                </ol>
-              </article>
-            )
-          })}
-        </div>
-      </section>
-
-      <section className="dossier-investigation section-panel" aria-labelledby="investigation-title">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Biblioteca de escenas</p>
-            <h3 id="investigation-title">Preparar o buscar un hallazgo concreto</h3>
-          </div>
-          <Eye size={22} aria-hidden="true" />
-        </div>
-        <p className="dossier-section-copy">
-          Usa esta biblioteca cuando quieras elegir una pista manualmente. El tablero del día de arriba es la partida viva; esto es tu caja
-          de herramientas para improvisar.
-        </p>
-
-        <div className="dossier-category-tabs segmented wrap" role="tablist" aria-label="Tipos de hallazgo">
-          <button
-            aria-selected={activeDiscoveryCategory === 'all'}
-            className={activeDiscoveryCategory === 'all' ? 'is-active' : undefined}
-            onClick={() => setActiveDiscoveryCategory('all')}
-            role="tab"
-            type="button"
-          >
-            Todo
-          </button>
-          {bloodOfBhaalDossier.discoveryCategories.map((category) => (
-            <button
-              aria-selected={activeDiscoveryCategory === category.id}
-              className={activeDiscoveryCategory === category.id ? 'is-active' : undefined}
-              key={category.id}
-              onClick={() => setActiveDiscoveryCategory(category.id)}
-              role="tab"
-              type="button"
-              title={category.detail}
-            >
-              {category.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="dossier-discovery-grid">
-          {visibleDiscoveries.map((discovery: DossierDiscovery) => {
-            const category = bloodOfBhaalDossier.discoveryCategories.find((candidate) => candidate.id === discovery.category)
-            const isUsed = usedDiscoveryIds.includes(discovery.id)
-            const outcome = discoveryOutcomes[discovery.id]
-            return (
-              <article className={isUsed ? 'dossier-discovery-card is-used' : 'dossier-discovery-card'} key={discovery.id}>
-                <div className="dossier-discovery-heading">
-                  <div>
-                    <span>{category?.label ?? discovery.category}</span>
-                    <h4>{discovery.title}</h4>
-                  </div>
-                  <button className="ghost-button" onClick={() => toggleDiscoveryUsed(discovery.id)} type="button">
-                    {isUsed ? <CheckCircle2 size={16} aria-hidden="true" /> : <Circle size={16} aria-hidden="true" />}
-                    {outcome === 'success' ? 'Éxito' : outcome === 'failure' ? 'Fallo' : isUsed ? 'Usado' : 'Usar'}
-                  </button>
-                </div>
-                <p>{discovery.trigger}</p>
-                <p className="dossier-setup-line">{discovery.setup}</p>
-                <div className="dossier-challenge-strip">
-                  <span>{discovery.challengeKind}</span>
-                  <strong>{discovery.difficulty}</strong>
-                </div>
-                <p className="dossier-goal-line">{discovery.goal}</p>
-                {renderFactGrid(discovery)}
-                <div className="dossier-detail-columns">
-                  {renderDetailList('Reto / DC', discovery.checks)}
-                  {renderDetailList('Contenido', discovery.contents)}
-                  {renderDetailList('Seguridad', discovery.security)}
-                  {renderDetailList('Acertijo', discovery.puzzle)}
-                  {renderDetailList('Combate', discovery.combat)}
-                  {renderDetailList('Pistas', discovery.clues)}
-                  {renderDetailList('Recompensas', discovery.rewards?.map((reward) => `${reward.label}: ${reward.value}`))}
-                  {renderDetailList('Complicaciones', discovery.complications)}
-                  {renderDetailList('Siguientes pistas', discovery.nextLeads)}
-                  {renderDetailList('Notas DM', discovery.dmNotes)}
-                </div>
-              </article>
-            )
-          })}
-        </div>
-      </section>
+      <div className="dossier-day-controls final-controls">
+        <button className="primary-action" onClick={endDay} type="button">
+          <CalendarDays size={16} aria-hidden="true" />
+          Finalizar día
+        </button>
+        <button className="ghost-button" onClick={resetInvestigation} type="button">
+          Reiniciar tablero
+        </button>
+      </div>
     </section>
   )
 }

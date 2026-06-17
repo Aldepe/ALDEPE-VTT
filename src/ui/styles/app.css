@@ -2913,6 +2913,340 @@ textarea:focus {
   line-height: 1.45;
 }
 
+.dossier-game-page {
+  gap: 12px;
+}
+
+.compact-dossier-header {
+  margin-bottom: 0;
+}
+
+.dossier-command-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dossier-command-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 10px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid rgba(34, 240, 200, 0.24);
+  border-radius: 8px;
+  padding: 11px;
+  background:
+    radial-gradient(circle at 0 0, rgba(34, 240, 200, 0.12), transparent 38%),
+    rgba(5, 8, 18, 0.66);
+}
+
+.dossier-command-card svg {
+  grid-row: span 2;
+  color: var(--cyan);
+}
+
+.dossier-command-card span {
+  color: var(--muted);
+  font-size: 0.69rem;
+  font-weight: 900;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.dossier-command-card strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 1.15rem;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.dossier-command-card.is-done {
+  border-color: rgba(184, 255, 98, 0.42);
+}
+
+.dossier-command-card.is-done svg,
+.dossier-command-card.is-done strong {
+  color: var(--lime);
+}
+
+.dossier-command-card.is-danger {
+  border-color: rgba(255, 106, 120, 0.44);
+}
+
+.dossier-command-card.is-danger svg,
+.dossier-command-card.is-danger strong {
+  color: var(--danger);
+}
+
+.dossier-day-notice {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  border: 1px solid rgba(247, 230, 111, 0.28);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fff7c4;
+  background:
+    radial-gradient(circle at 0 0, rgba(247, 230, 111, 0.14), transparent 36%),
+    rgba(5, 8, 18, 0.68);
+  line-height: 1.35;
+}
+
+.dossier-day-notice svg {
+  flex: 0 0 auto;
+  color: var(--gold);
+}
+
+.dossier-loop-grid,
+.dossier-tracking-shell,
+.dossier-bottom-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dossier-move-card,
+.dossier-player-panel,
+.dossier-mini-track,
+.dossier-underworld {
+  min-width: 0;
+  border: 1px solid rgba(34, 240, 200, 0.24);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 0 0, rgba(34, 240, 200, 0.12), transparent 34%),
+    rgba(255, 255, 255, 0.045);
+}
+
+.dossier-move-card,
+.dossier-mini-track {
+  display: grid;
+  gap: 11px;
+  padding: 14px;
+}
+
+.cult-move-card {
+  border-color: rgba(255, 79, 163, 0.32);
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 79, 163, 0.16), transparent 36%),
+    rgba(5, 8, 18, 0.66);
+}
+
+.street-event-card {
+  border-color: rgba(247, 230, 111, 0.28);
+}
+
+.dossier-move-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.dossier-move-heading svg {
+  color: var(--cyan);
+  filter: drop-shadow(0 0 12px rgba(34, 240, 200, 0.24));
+}
+
+.cult-move-card .dossier-move-heading svg {
+  color: var(--pink);
+}
+
+.dossier-move-heading h3,
+.dossier-move-heading p,
+.dossier-move-card p,
+.dossier-location-detail p {
+  margin: 0;
+}
+
+.dossier-move-heading p,
+.dossier-location-detail p {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.dossier-move-callout {
+  border-left: 3px solid rgba(34, 240, 200, 0.5);
+  padding-left: 10px;
+  color: var(--text) !important;
+}
+
+.cult-move-card .dossier-move-callout {
+  border-left-color: rgba(255, 79, 163, 0.56);
+}
+
+.dossier-location-shell {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.32fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.dossier-location-tabs {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+}
+
+.dossier-location-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 9px 10px;
+  color: var(--text);
+  background: rgba(5, 8, 18, 0.58);
+  text-align: left;
+}
+
+.dossier-location-tabs button.is-active {
+  border-color: rgba(34, 240, 200, 0.72);
+  color: var(--cyan);
+  background: rgba(34, 240, 200, 0.12);
+  box-shadow: var(--glow-cyan);
+}
+
+.dossier-location-tabs span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dossier-location-detail {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 13px;
+  background: rgba(5, 8, 18, 0.55);
+}
+
+.dossier-compact-clock-grid,
+.dossier-cult-stat-grid,
+.underworld-signal-grid {
+  display: grid;
+  gap: 9px;
+}
+
+.dossier-compact-clock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 10px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(5, 8, 18, 0.52);
+}
+
+.dossier-compact-clock > div:first-child {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.dossier-compact-clock h4 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.dossier-compact-clock strong {
+  color: var(--cyan);
+}
+
+.dossier-compact-clock .dossier-clock-track {
+  grid-column: 1 / -1;
+}
+
+.dossier-compact-clock .dossier-clock-controls {
+  grid-row: span 2;
+}
+
+.dossier-cult-stat {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(5, 8, 18, 0.52);
+}
+
+.dossier-cult-stat svg {
+  color: var(--cyan);
+}
+
+.dossier-cult-stat span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.dossier-cult-stat strong {
+  display: block;
+  margin: 2px 0;
+  color: var(--text);
+}
+
+.dossier-cult-stat p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.32;
+}
+
+.dossier-cult-stat.is-danger {
+  border-color: rgba(255, 106, 120, 0.44);
+  box-shadow: 0 0 18px rgba(255, 106, 120, 0.08);
+}
+
+.dossier-cult-stat.is-danger svg,
+.dossier-cult-stat.is-danger strong {
+  color: var(--danger);
+}
+
+.underworld-signal-grid {
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+}
+
+.underworld-signal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  min-width: 0;
+  border: 1px solid rgba(34, 240, 200, 0.18);
+  border-radius: 8px;
+  padding: 9px;
+  background: rgba(5, 8, 18, 0.5);
+}
+
+.underworld-signal svg {
+  color: var(--cyan);
+}
+
+.underworld-signal strong {
+  display: block;
+  color: var(--text);
+}
+
+.underworld-signal span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.final-controls {
+  justify-content: flex-end;
+}
+
 .dossier-game-board {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3102,6 +3436,19 @@ textarea:focus {
 
 .dossier-session-log li.is-day {
   color: #fff7c4;
+}
+
+.dossier-session-log li.is-cult,
+.dossier-session-log li.is-warning {
+  color: #ffe2e8;
+}
+
+.dossier-session-log li.is-player {
+  color: #edffd6;
+}
+
+.dossier-session-log p {
+  margin: 0;
 }
 
 .dossier-clock-grid {
@@ -4461,6 +4808,10 @@ textarea:focus {
   .timeline-page,
   .lore-page,
   .dossier-section-grid,
+  .dossier-loop-grid,
+  .dossier-tracking-shell,
+  .dossier-bottom-grid,
+  .dossier-location-shell,
   .dossier-active-heading,
   .dossier-intro,
   .notes-page,
@@ -4469,6 +4820,7 @@ textarea:focus {
   }
 
   .dossier-metrics,
+  .dossier-command-grid,
   .dossier-game-board,
   .dossier-day-grid,
   .dossier-cell-grid {
@@ -4548,11 +4900,16 @@ textarea:focus {
   }
 
   .dossier-metrics,
+  .dossier-command-grid,
   .dossier-game-board,
   .dossier-day-grid,
   .dossier-clock-grid,
   .dossier-discovery-grid,
   .dossier-cell-grid,
+  .dossier-loop-grid,
+  .dossier-tracking-shell,
+  .dossier-bottom-grid,
+  .dossier-location-shell,
   .lore-editor-matrix {
     grid-template-columns: 1fr;
   }
