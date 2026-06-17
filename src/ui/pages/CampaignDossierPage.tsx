@@ -89,13 +89,17 @@ function getMoveProgress(move: InvestigationMove) {
     return explicitProgress
   }
 
-  if (move.discoveryId?.includes('piano') || move.discoveryId?.includes('mansion')) {
+  if (move.discoveryId?.includes('mansion')) {
     return [{ clockId: 'mansion-access', delta: 1 }]
   }
   if (move.discoveryId?.includes('cipher') || move.discoveryId?.includes('pigeon') || move.discoveryId?.includes('dovecote')) {
     return [{ clockId: 'cipher-system', delta: 1 }]
   }
   return [{ clockId: 'bhaal-system', delta: 1 }]
+}
+
+function unlocksInterception(move: InvestigationMove) {
+  return getMoveProgress(move).some((progress) => progress.clockId === 'cipher-system')
 }
 
 function renderDossierIcon(icon: DossierIconId, size: number) {
@@ -139,7 +143,7 @@ function getCultPressureLabel(cultStats: Record<CultStatId, number>) {
     return 'La red tantea'
   }
   if (pressure <= 9) {
-    return 'El Mata Osos entiende el patrón'
+    return 'La célula entiende el patrón'
   }
   if (pressure <= 14) {
     return 'Neutralización en marcha'
@@ -156,6 +160,7 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
   const [activeLocationId, setActiveLocationId] = useState(locationInvestigations[0].id)
   const [streetEventIndex, setStreetEventIndex] = useState(0)
   const [cultMoveIndex, setCultMoveIndex] = useState(0)
+  const [interceptCharges, setInterceptCharges] = useState(0)
   const [playerActionResolved, setPlayerActionResolved] = useState(false)
   const [cultActionResolved, setCultActionResolved] = useState(false)
   const [dayNotice, setDayNotice] = useState('Día 1 iniciado: la secta observa, los players eligen dónde meter presión.')
@@ -247,6 +252,9 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
     if (outcome === 'success') {
       applyClockProgress(move)
       applyCultStatDeltas(move.cultStatsOnSuccess)
+      if (unlocksInterception(move)) {
+        setInterceptCharges((current) => clamp(current + 1, 0, 3))
+      }
       addEffect({ source: 'players', text: move.playerBuff ?? 'La próxima investigación empieza con una pista clara.' })
       addLog({ tone: 'player', text: `Players: éxito en "${move.title}". ${move.success}` })
       setDayNotice(`Acción player resuelta: éxito en ${move.title}.`)
@@ -293,6 +301,37 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
     setDayNotice('Los players pasan acción. La secta lee ausencia de movimiento como información.')
   }
 
+  function interceptCommunication() {
+    if (playerActionResolved) {
+      setDayNotice('Interceptar cuenta como acción player. Ya han actuado este día.')
+      return
+    }
+    if (interceptCharges <= 0) {
+      setDayNotice('Primero deben descubrir un sistema de comunicación: palomar, tiza, nudos, lavandería o señales de tejado.')
+      return
+    }
+
+    setPlayerActionResolved(true)
+    setInterceptCharges((current) => clamp(current - 1, 0, 3))
+    setClockValues((current) => {
+      const cipherClock = bloodOfBhaalDossier.clocks.find((clock) => clock.id === 'cipher-system')
+      if (!cipherClock) {
+        return current
+      }
+      return {
+        ...current,
+        'cipher-system': clamp((current['cipher-system'] ?? cipherClock.initial) + 1, 0, cipherClock.max),
+      }
+    })
+    applyCultStatDeltas([
+      { stat: 'intent', delta: -1 },
+      { stat: 'cover', delta: -1 },
+    ])
+    addEffect({ source: 'players', text: 'Comunicación interceptada: -1 Intención y -1 Cobertura de la célula.' })
+    addLog({ tone: 'player', text: 'Players interceptan una comunicación futura y leen una orden parcial.' })
+    setDayNotice('Intercepción resuelta: han leído una orden sin exponerse del todo.')
+  }
+
   function rotateStreetEvent() {
     setStreetEventIndex(randomIndex(randomStreetEvents.length))
     setDayNotice('Evento urbano random cambiado para esta ronda.')
@@ -314,7 +353,7 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
     setPlayerActionResolved(false)
     setCultActionResolved(false)
     setActiveEffects((current) => current.slice(0, 3))
-    setDayNotice(`Día ${campaignDay} cerrado. Día ${nextDay}: nuevo evento urbano y nueva acción de El Mata Osos.`)
+    setDayNotice(`Día ${campaignDay} cerrado. Día ${nextDay}: nuevo evento urbano y nueva acción de la célula.`)
     addLog({
       tone: 'day',
       text: `Fin del día ${campaignDay}. Presión enemiga ${cultPressure}/18. Progreso player ${totalProgress}/${maxProgress}.`,
@@ -326,6 +365,7 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
     setActiveLocationId(locationInvestigations[0].id)
     setStreetEventIndex(0)
     setCultMoveIndex(0)
+    setInterceptCharges(0)
     setPlayerActionResolved(false)
     setCultActionResolved(false)
     setDayNotice('Día 1 reiniciado: la secta vuelve a operar desde cobertura completa.')
@@ -355,7 +395,7 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
         <div>
           <p className="eyebrow">Dossier DM · minijuego urbano</p>
           <h2 id="dossier-title">Sangre de Bhaal contra los players</h2>
-          <p>Una ronda diaria: los players investigan un frente; El Mata Osos intenta rastrearlos, leerlos y neutralizarlos.</p>
+          <p>Una ronda diaria: los players investigan un lugar; la célula responde desde las sombras sin revelar a su líder.</p>
         </div>
         <div className="avatar-chip danger-chip">
           <Skull size={18} aria-hidden="true" />
@@ -403,10 +443,27 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
           <div className="dossier-move-heading">
             {renderDossierIcon(cultMove.icon, 28)}
             <div>
-              <p className="eyebrow">Acción de El Mata Osos</p>
+              <p className="eyebrow">Acción de la célula</p>
               <h3>{cultMove.title}</h3>
               <p>{cultMove.objective}</p>
             </div>
+          </div>
+          <div className="dossier-cult-action-grid" aria-label="Acciones posibles de la célula">
+            {cultMoves.map((move, index) => {
+              const isActive = index === cultMoveIndex
+              return (
+                <button
+                  aria-selected={isActive}
+                  className={isActive ? 'is-active' : undefined}
+                  key={move.id}
+                  onClick={() => setCultMoveIndex(index)}
+                  type="button"
+                >
+                  {renderDossierIcon(move.icon, 15)}
+                  <span>{move.title}</span>
+                </button>
+              )
+            })}
           </div>
           <p className="dossier-move-callout">{cultMove.challenge}</p>
           <div className="dossier-detail-columns">
@@ -453,11 +510,13 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
               <RefreshCw size={16} aria-hidden="true" />
               Otro random
             </button>
+            <button className="ghost-button" disabled={playerActionResolved || interceptCharges <= 0} onClick={interceptCommunication} type="button">
+              <KeyRound size={16} aria-hidden="true" />
+              Interceptar ({interceptCharges})
+            </button>
           </div>
         </article>
-      </section>
-
-      <section className="dossier-player-panel section-panel" aria-labelledby="player-action-title">
+        <section className="dossier-player-panel section-panel" aria-labelledby="player-action-title">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Acción de los players</p>
@@ -467,24 +526,20 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
         </div>
 
         <div className="dossier-location-shell">
-          <div className="dossier-location-tabs" role="tablist" aria-label="Localizaciones investigables">
-            {locationInvestigations.map((investigation) => {
-              const isActive = investigation.id === activeLocation.id
-              return (
-                <button
-                  aria-selected={isActive}
-                  className={isActive ? 'is-active' : undefined}
-                  key={investigation.id}
-                  onClick={() => setActiveLocationId(investigation.id)}
-                  role="tab"
-                  type="button"
-                >
-                  {renderDossierIcon(investigation.icon, 16)}
-                  <span>{investigation.location}</span>
-                </button>
-              )
-            })}
-          </div>
+          <label className="dossier-location-select">
+            <span>Lugar</span>
+            <select
+              aria-label="Localización investigable"
+              onChange={(event) => setActiveLocationId(event.currentTarget.value)}
+              value={activeLocation.id}
+            >
+              {locationInvestigations.map((investigation) => (
+                <option key={investigation.id} value={investigation.id}>
+                  {investigation.location}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <article className="dossier-location-detail" role="tabpanel">
             <div className="dossier-move-heading">
@@ -516,6 +571,7 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
             </div>
           </article>
         </div>
+        </section>
       </section>
 
       <section className="dossier-tracking-shell" aria-label="Tracking de investigación">
