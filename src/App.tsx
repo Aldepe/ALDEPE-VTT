@@ -44,6 +44,7 @@ import {
 import { AppShell, type MainTab } from '@ui/layout/AppShell'
 import { AuthPanel } from '@ui/pages/AuthPanel'
 import { BattlemapPage } from '@ui/pages/BattlemapPage'
+import { CampaignDossierPage } from '@ui/pages/CampaignDossierPage'
 import { CharacterSheetPage } from '@ui/pages/CharacterSheetPage'
 import { LorePage } from '@ui/pages/LorePage'
 import { NotesPage } from '@ui/pages/NotesPage'
@@ -666,6 +667,9 @@ export default function App() {
           onSave={saveLoreEntry}
           viewerMember={viewerMember}
         />
+      ) : null}
+      {activeTab === 'dossier' ? (
+        <CampaignDossierPage isDm={isDm(viewerMember)} />
       ) : null}
       {activeTab === 'notes' ? (
         <NotesPage

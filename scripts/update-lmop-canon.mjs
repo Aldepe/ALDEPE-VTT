@@ -21,6 +21,57 @@ const now = new Date().toISOString()
 
 const text = (...paragraphs) => paragraphs.join('\n\n')
 
+const organizationFieldDefaults = {
+  ideologia: 'Pendiente de concretar.',
+  descripcion: 'Pendiente de concretar.',
+  historia: 'Pendiente de concretar.',
+  numeroMiembros: 'Desconocido',
+  alignment: 'Variable',
+  liderazgo: 'Descentralizado',
+  base: 'Sin base fija confirmada',
+  alcance: 'Local',
+  metodos: 'Contactos, favores y presencia social.',
+  recursos: 'Limitados',
+  aliados: 'Ninguno confirmado',
+  enemigos: 'Ninguno confirmado',
+  estadoActual: 'Activo en segundo plano',
+  senalesVisibles: 'Pocas señales públicas.',
+  usoEnMesa: 'Usar como contexto de faccion y fuente de pistas.',
+}
+
+function organizationPublicFields(fields) {
+  const values = { ...organizationFieldDefaults, ...fields }
+
+  return {
+    Ideología: values.ideologia,
+    Descripción: values.descripcion,
+    Historia: values.historia,
+    'Número de miembros': values.numeroMiembros,
+    Alignment: values.alignment,
+    Liderazgo: values.liderazgo,
+    Base: values.base,
+    Alcance: values.alcance,
+    Métodos: values.metodos,
+    Recursos: values.recursos,
+    Aliados: values.aliados,
+    Enemigos: values.enemigos,
+    'Estado actual': values.estadoActual,
+    'Señales visibles': values.senalesVisibles,
+    'Uso en mesa': values.usoEnMesa,
+  }
+}
+
+function zonePublicFields(fields) {
+  return {
+    Descripción: fields.descripcion,
+    Historia: fields.historia,
+    Claves: fields.claves,
+    Encuentros: fields.encuentros,
+    Conexiones: fields.conexiones,
+    'Uso en mesa': fields.usoEnMesa,
+  }
+}
+
 const loreDefinitions = [
   {
     key: 'borisKamenov',
@@ -121,7 +172,7 @@ const loreDefinitions = [
   {
     key: 'kingGral',
     fallbackId: 'lmop_creature_rey_gral',
-    aliases: ['King Grol', 'King Gral', 'Rey Grol', 'Rey Gral'],
+    aliases: ['King Grol', 'King Gral', 'Rey Grol', 'Rey Gral', 'Rey Zig y el Rey Zag'],
     type: 'creature',
     name: 'Rey Gral',
     publicFields: {
@@ -204,7 +255,7 @@ const loreDefinitions = [
   {
     key: 'sildar',
     fallbackId: 'lmop_person_sildar_hallwinter',
-    aliases: ['Sildar', 'Sildar Hallwinter'],
+    aliases: ['Sildar', 'Sildar Hallwinter', 'Arabel Sha'],
     type: 'person',
     name: 'Sildar Hallwinter',
     publicFields: {
@@ -221,7 +272,7 @@ const loreDefinitions = [
   {
     key: 'reidoth',
     fallbackId: 'lmop_person_reidoth',
-    aliases: ['Reidoth'],
+    aliases: ['Reidoth', 'Pyrgopolynices Margarita'],
     type: 'person',
     name: 'Reidoth',
     publicFields: {
@@ -551,6 +602,309 @@ addDefinition({
   ),
 })
 
+overrideDefinition('lordsAlliance', {
+  publicFields: organizationPublicFields({
+    ideologia: text(
+      'La Alianza de los Lores cree que la civilizacion se sostiene con ley, continuidad institucional, rutas seguras y autoridad reconocible.',
+      'Su pecado filosofico es confundir estabilidad con justicia. Si un documento, una firma o una ciudad poderosa puede ordenar el mundo, tiende a asumir que ese orden merece existir.',
+    ),
+    descripcion:
+      'Coalicion politica interesada en recuperar influencia sobre Phandalin y sobre las tierras de la Cueva del Eco mediante contratos, escoltas, escribanos y legitimidad legal.',
+    historia: text(
+      'Se presenta como heredera politica del Pacto de Phandelver, pero perdio permisos y control documental sobre las tierras mineras.',
+      'Por eso necesita a Boris Kamenov: sus papeles familiares pueden devolverle a la Alianza una puerta legal hacia la mina.',
+    ),
+    numeroMiembros: 'Red regional; en Phandalin 2-4 agentes directos.',
+    alignment: 'Legal neutral con agentes buenos y oportunistas.',
+    liderazgo: 'Consejos urbanos, patronos nobles y enviados legales.',
+    base: 'Neverwinter y contactos administrativos en Phandalin.',
+    alcance: 'Costa de la Espada, rutas comerciales y asentamientos aliados.',
+    metodos: 'Contratos, escoltas, permisos, auditorias, presion economica y patronazgo.',
+    recursos: 'Oro, escribanos, mercenarios legales, contactos nobles y reputacion institucional.',
+    aliados: 'Orden del Guantelete, Sildar Hallwinter, familia Kamenov por interes mutuo.',
+    enemigos: 'Sangre de Bhaal, Nezznar, saboteadores de la mina y cualquier faccion que tema auditorias.',
+    estadoActual: 'Ha vuelto a mirar hacia Phandalin tras aparecer los papeles Kamenov.',
+    senalesVisibles: 'Cartas selladas, escoltas demasiado correctas, preguntas por permisos antiguos.',
+    usoEnMesa: 'Presentarla como ayuda util pero incomoda: protege, paga y ordena, pero tambien reclama.',
+  }),
+})
+
+overrideDefinition('bronzeRings', {
+  publicFields: organizationPublicFields({
+    ideologia: text(
+      'Los Anillos de Bronce no tienen doctrina elevada: creen en supervivencia, botin, deuda y miedo.',
+      'Precisamente por eso son utiles para facciones mas complejas. Son violencia negable con hambre y mala disciplina.',
+    ),
+    descripcion:
+      'Red de bandidos, ladrones y matones de poca monta repartida por la Costa de la Espada. Incluye humanos, goblins, orcos y humanoides hiena.',
+    historia:
+      'Nacieron como cuadrillas separadas de salteadores y acabaron usando anillos baratos de bronce como marca de deuda, pertenencia y amenaza.',
+    numeroMiembros: '30-50 dispersos; 8-14 cerca de Phandalin.',
+    alignment: 'Caotico neutral a caotico malvado.',
+    liderazgo: 'Rey Gral, etin de dos cabezas; jefes menores por fuerza.',
+    base: 'Guaridas moviles, caminos secundarios y viejo castillo del Anillo de Bronce.',
+    alcance: 'Rutas entre Neverwinter, Triboar Trail y periferia de Phandalin.',
+    metodos: 'Emboscadas, secuestros, peajes falsos, venta de prisioneros y saqueo rapido.',
+    recursos: 'Armas robadas, exploradores, cuevas, informantes baratos y rutas de contrabando.',
+    aliados: 'Sangre de Bhaal como contratista secreto; colaboradores criminales puntuales.',
+    enemigos: 'Caravanas armadas, Sildar, Alianza de los Lores y aventureros persistentes.',
+    estadoActual: 'Subcontratados para impedir que Boris Kamenov llegue a Phandalin.',
+    senalesVisibles: 'Anillos de bronce, marcas en arboles, peajes improvisados y rumores de un gigante de dos voces.',
+    usoEnMesa: 'Usarlos como primera capa visible: parecen el problema, pero son pantalla contratada.',
+  }),
+})
+
+overrideDefinition('bloodOfBhaal', {
+  publicFields: organizationPublicFields({
+    ideologia: text(
+      'La Sangre de Bhaal sostiene que la vida racional ha corrompido la existencia con lenguaje, memoria, codicia, ley, tecnica y moral usada como excusa.',
+      'Para ellos, matar no es simple crueldad: es una cirugia metafisica. Creen que animales y seres no inteligentes no cargan con la culpa racional que contamina el mundo.',
+      'Aceptan su paradoja final: cuando toda criatura racional haya desaparecido, los propios devotos de Bhaal tambien deberan morir.',
+    ),
+    descripcion: text(
+      'Faccion secreta que opera en Phandalin desde las sombras. No gobierna el pueblo de forma abierta: lo inclina.',
+      'Tiene alijos, palomares, cifrados, pisos francos, rutas cortas, infiltrados modestos y negocios tapadera. El operativo es pequeño porque Phandalin es pequeño, pero esta bien diseñado para negar su propia existencia.',
+    ),
+    historia: text(
+      'Nezznar ha construido el operativo durante años para proteger su explotacion secreta de la Cueva del Eco y evitar que la Alianza de los Lores descubra sus artefactos.',
+      'Iarno fue corrompido como pieza util. Los Anillos de Bronce fueron contratados como violencia externa para que el culto no aparezca ligado al ataque contra Boris.',
+    ),
+    numeroMiembros: '5-7 cultistas reales; 10-14 colaboradores indirectos.',
+    alignment: 'Neutral malvado con disciplina sectaria.',
+    liderazgo: 'Nezznar en la sombra; celulas pequeñas con autonomia limitada.',
+    base: 'Pisos francos de Phandalin y rutas hacia la Cueva del Eco.',
+    alcance: 'Local, con contactos externos puntuales.',
+    metodos: 'Rogues con magia de sangre, chantaje, alijos, mensajes cifrados, sobornos y desapariciones discretas.',
+    recursos: 'Dagas rituales, sangre preservada, sellos falsos, palomares, tinta ferrica y negocios tapadera.',
+    aliados: 'Anillos de Bronce por contrato; Iarno corrompido; colaboradores que no conocen el culto.',
+    enemigos: 'Orden del Guantelete, Sister Garaele, Alianza de los Lores, familia Kamenov y cualquier investigador paciente.',
+    estadoActual: 'Operativo pequeño pero activo; intenta frenar a Boris, Sildar y cualquier auditoria sobre la mina.',
+    senalesVisibles: 'Cera negra, tiza roja, heridas cerradas con costra oscura, palabras comerciales repetidas en cartas.',
+    usoEnMesa: 'Revelarla por acumulacion: primero crimen local, luego patron, finalmente culto.',
+  }),
+})
+
+overrideDefinition('orderGauntlet', {
+  publicFields: organizationPublicFields({
+    ideologia:
+      'La Orden del Guantelete cree que la neutralidad ante el mal es complicidad. Defiende juicio, valor personal y proteccion activa del inocente.',
+    descripcion:
+      'Orden militante de fe y disciplina. Sus miembros no son simples soldados: se ven como testigos armados de la justicia.',
+    historia:
+      'Sildar Hallwinter actua como alto elfo devoto de Tyr y agente contratado para escoltar a Boris y contactar con Iarno.',
+    numeroMiembros: 'Amplia a escala regional; 1 agente claro en la zona.',
+    alignment: 'Legal bueno.',
+    liderazgo: 'Juramentos, templos aliados y capitanes de celula.',
+    base: 'Templos, casas de orden y contactos itinerantes.',
+    alcance: 'Regional.',
+    metodos: 'Escolta, interrogatorio justo, proteccion de testigos, duelos legales y denuncia publica.',
+    recursos: 'Reputacion moral, entrenamiento marcial, simbolos de Tyr y redes de templos.',
+    aliados: 'Sildar, Alianza de los Lores cuando actua legalmente, Sister Garaele si comparte sospechas.',
+    enemigos: 'Sangre de Bhaal, asesinos, corruptos y cultos que justifican sufrimiento.',
+    estadoActual: 'Aun no entiende el alcance de la amenaza en Phandalin.',
+    senalesVisibles: 'Simbolos de Tyr, lenguaje juridico, negativa a aceptar atajos crueles.',
+    usoEnMesa: 'Usarla como contrapunto moral a Bhaal: la justicia insiste en reparar lo que Bhaal quiere apagar.',
+  }),
+})
+
+overrideDefinition('emeraldEnclave', {
+  publicFields: organizationPublicFields({
+    ideologia:
+      'El Enclave Esmeralda defiende equilibrio natural, limites a la expansion y responsabilidad hacia tierras que no pueden defenderse solas.',
+    descripcion:
+      'Red de druidas, exploradores y guardianes. No odia la civilizacion por defecto; odia la civilizacion que se cree sin coste.',
+    historia:
+      'Reidoth investiga si Venomfang prepara una accion ligada al daño ecologico de la Cueva del Eco.',
+    numeroMiembros: 'Red amplia; 1 agente principal en la zona.',
+    alignment: 'Neutral bueno a neutral.',
+    liderazgo: 'Circulos druidicos y guardianes autonomos.',
+    base: 'Bosques, ruinas naturales y rutas apartadas.',
+    alcance: 'Regional natural, no administrativo.',
+    metodos: 'Observacion, advertencias, pactos locales, sabotaje menor y mediacion con criaturas.',
+    recursos: 'Conocimiento del terreno, animales, magia natural y rutas que la ciudad ignora.',
+    aliados: 'Reidoth, comunidades que respetan limites, aventureros que escuchen antes de quemar.',
+    enemigos: 'Culto de Tiamat por fanatismo, mineros irresponsables, depredadores territoriales.',
+    estadoActual: 'Investigando a Venomfang y el coste real de reabrir la mina.',
+    senalesVisibles: 'Marcas naturales, animales demasiado atentos, advertencias sin firma.',
+    usoEnMesa: 'Evitar que ecologia sea simple decorado: la mina tiene consecuencias reales.',
+  }),
+})
+
+overrideDefinition('cultTiamat', {
+  publicFields: organizationPublicFields({
+    ideologia: text(
+      'Esta rama del Culto de Tiamat afirma que los humanoides racionales contaminan la tierra con minas, humo, fronteras, ciudades y codicia acumulativa.',
+      'No busca equilibrio como el Enclave: quiere reemplazar el abuso humanoide por una jerarquia draconica donde Tiamat y sus elegidos deciden que merece sobrevivir.',
+    ),
+    descripcion:
+      'Faccion draconica ecoterrorista. En torno a Phandalin, Venomfang es su rostro, arma y profeta ambiguo.',
+    historia:
+      'La reapertura de la Cueva del Eco convierte a Phandalin en objetivo. Para el culto, la mina es una herida que debe cerrarse con miedo, sabotaje o fuego.',
+    numeroMiembros: 'Celula pequeña; Venomfang mas 3-6 simpatizantes utiles.',
+    alignment: 'Legal malvado a neutral malvado.',
+    liderazgo: 'Venomfang localmente; doctrina superior de Tiamat.',
+    base: 'Thundertree, bosques cercanos y puntos de observacion sobre rutas mineras.',
+    alcance: 'Local con eco de culto mayor.',
+    metodos: 'Sabotaje ecologico, terror selectivo, propaganda naturalista y pactos de miedo.',
+    recursos: 'Dragon, veneno, cultistas discretos, conocimiento del terreno y simbolismo draconico.',
+    aliados: 'Simpatizantes radicalizados; posibles tratos temporales con enemigos de la mina.',
+    enemigos: 'Alianza de los Lores, familia Kamenov, mineros, Nezznar si mantiene la extraccion.',
+    estadoActual: 'Preparando acciones contra la mina y midiendo si puede usar el caos de Phandalin.',
+    senalesVisibles: 'Marcas draconicas, animales desplazados, amenazas contra herramientas mineras.',
+    usoEnMesa: 'Hacer que tenga razon en el diagnostico y horror en el remedio.',
+  }),
+})
+
+addDefinition({
+  key: 'harpers',
+  fallbackId: 'lore_lmop_org_harpers',
+  aliases: ['Harpers', 'Arpistas'],
+  type: 'organization',
+  name: 'Harpers',
+  publicFields: organizationPublicFields({
+    ideologia:
+      'Los Harpers creen que ningun poder debe crecer sin vigilancia. Prefieren informacion, equilibrio y pequenas intervenciones antes que dominio abierto.',
+    descripcion:
+      'Red de espias, bardos, magos menores y agentes independientes que desconfian de tiranos, cultos y monopolios.',
+    historia:
+      'En la region, su interes nace por rumores de secta, movimientos de Nezznar y desapariciones que parecen crimen comun.',
+    numeroMiembros: 'Red amplia; 1-2 contactos plausibles cerca de Phandalin.',
+    alignment: 'Caotico bueno a neutral bueno.',
+    liderazgo: 'Celulas autonomas con contactos seguros.',
+    base: 'Casas seguras, canciones clave y correspondencia discreta.',
+    alcance: 'Costa de la Espada.',
+    metodos: 'Informacion, rumor controlado, rescate discreto, exposicion de conspiraciones.',
+    recursos: 'Contactos, mensajes, refugios, magia menor y reputacion entre idealistas.',
+    aliados: 'Sister Garaele, aventureros confiables, enemigos de tiranias.',
+    enemigos: 'Sangre de Bhaal, Zhentarim cuando busca monopolio, Nezznar.',
+    estadoActual: 'Sospechan que Phandalin tiene mas capas de las que muestra.',
+    senalesVisibles: 'Canciones repetidas, broches discretos, preguntas muy concretas.',
+    usoEnMesa: 'Dar pistas sin resolver el misterio por los jugadores.',
+  }),
+  secret: 'Sister Garaele puede compartir informacion con Harpers si la secta se confirma.',
+})
+
+addDefinition({
+  key: 'zhentarim',
+  fallbackId: 'lore_lmop_org_zhentarim',
+  aliases: ['Zhentarim', 'Red Negra'],
+  type: 'organization',
+  name: 'Zhentarim',
+  publicFields: organizationPublicFields({
+    ideologia:
+      'Los Zhentarim creen que seguridad y poder pertenecen a quien puede comprarlos, protegerlos y hacerlos rentables.',
+    descripcion:
+      'Red mercantil y criminal que mezcla proteccion, comercio agresivo, espionaje y violencia calibrada.',
+    historia:
+      'Halia Thornton puede usar la crisis de Phandalin para aumentar influencia sin apoyar necesariamente a ninguna secta.',
+    numeroMiembros: 'Red extensa; 1 contacto fuerte en Phandalin.',
+    alignment: 'Legal malvado a neutral.',
+    liderazgo: 'Cadenas de mando economicas y agentes con autonomia.',
+    base: "Miner's Exchange y rutas comerciales si logran controlarlas.",
+    alcance: 'Regional.',
+    metodos: 'Credito, chantaje, proteccion, compraventa de secretos y eliminacion selectiva.',
+    recursos: 'Dinero, mercenarios, informacion comercial y contactos criminales.',
+    aliados: 'Halia si conviene; comerciantes endeudados; mercenarios.',
+    enemigos: 'Competidores, cultos impredecibles, autoridades que bloqueen negocio.',
+    estadoActual: 'Oportunistas: pueden ayudar contra Bhaal si ven beneficio.',
+    senalesVisibles: 'Contratos duros, guardias privados, ofertas que llegan demasiado pronto.',
+    usoEnMesa: 'Convertirlos en aliado incomodo, no en villano automatico.',
+  }),
+  secret: 'Saben que hay una red oculta, pero no necesariamente que es Sangre de Bhaal.',
+})
+
+addDefinition({
+  key: 'cultGruumsh',
+  fallbackId: 'lmop_organization_culto_de_gruumsh',
+  aliases: ['Culto de Gruumsh', 'Gruumsh', 'Orcos de Wyvern Tor', 'Wyvern Tor Orcs'],
+  type: 'organization',
+  name: 'Culto de Gruumsh de Wyvern Tor',
+  publicFields: organizationPublicFields({
+    ideologia:
+      'El culto predica que la fuerza revela verdad. Gruumsh no pide permiso al mundo: lo hiere para demostrar quien merece ocuparlo.',
+    descripcion:
+      'Faccion orca de Wyvern Tor que mezcla saqueo, culto guerrero y orgullo tribal. No son simples bandidos: interpretan cada victoria como mandato divino.',
+    historia:
+      'Sus ataques han aumentado porque las rutas hacia Phandalin vuelven a mover riqueza, metal y presas dignas.',
+    numeroMiembros: '12-20 guerreros y seguidores.',
+    alignment: 'Caotico malvado.',
+    liderazgo: 'Brughor Axe-Biter y chamanes de Gruumsh.',
+    base: 'Wyvern Tor.',
+    alcance: 'Colinas, caminos secundarios y campamentos de paso.',
+    metodos: 'Asaltos frontales, desafios rituales, saqueo de caravanas y marcas de guerra.',
+    recursos: 'Guerreros, chamanismo brutal, terreno elevado y miedo tribal.',
+    aliados: 'Anillos de Bronce de forma puntual; nadie de confianza real.',
+    enemigos: 'Alianza de los Lores, caravanas, mineros y rivales que parezcan debiles.',
+    estadoActual: 'Puede aprovechar la confusion sin estar subordinado a Nezznar.',
+    senalesVisibles: 'Tótems de ojo, marcas de hacha, cantos de guerra nocturnos.',
+    usoEnMesa: 'Dar un peligro externo que no pertenezca al tablero de Bhaal.',
+  }),
+  secret: 'La Sangre de Bhaal puede intentar redirigirlos, pero no controlarlos.',
+})
+
+addDefinition({
+  key: 'redWizards',
+  fallbackId: 'lmop_organization_magos_rojos',
+  aliases: ['Magos Rojos', 'Red Wizards', 'Red Wizards of Thay', 'Thay'],
+  type: 'organization',
+  name: 'Magos Rojos de Thay',
+  publicFields: organizationPublicFields({
+    ideologia:
+      'Los Magos Rojos creen que conocimiento, muerte y poder arcano deben ser administrados por quienes tienen voluntad suficiente para usarlos.',
+    descripcion:
+      'Faccion arcana thayina interesada en ruinas, necromancia, artefactos y cualquier resonancia que pueda convertirse en ventaja.',
+    historia:
+      'Hamun Kost y Old Owl Well conectan la region con intereses rojos: no necesitan controlar Phandalin, solo extraer saber antes que otros.',
+    numeroMiembros: '1 agente visible; red lejana mucho mayor.',
+    alignment: 'Legal malvado.',
+    liderazgo: 'Jerarquias arcanas de Thay.',
+    base: 'Old Owl Well como punto local de investigacion.',
+    alcance: 'Internacional, pero presencia local minima.',
+    metodos: 'Investigacion arcana, no muertos, compra de secretos, intimidacion culta.',
+    recursos: 'Magia roja, rituales, contactos thayinos y conocimiento prohibido.',
+    aliados: 'Ninguno estable; tratos temporales con quien aporte reliquias.',
+    enemigos: 'Harpers, Orden del Guantelete, competidores arcanos y cualquiera que robe hallazgos.',
+    estadoActual: 'Observan la region y pueden detectar que la Cueva del Eco vale mas de lo que parece.',
+    senalesVisibles: 'Tatuajes rojos, circulos de tiza, no muertos disciplinados, lenguaje academico frio.',
+    usoEnMesa: 'Usarlos como tercera via arcana: no son Bhaal, pero tampoco son seguros.',
+  }),
+  secret: 'Podrian interesarse por los artefactos de Nezznar si descubren su procedencia.',
+})
+
+addDefinition({
+  key: 'lionshieldCosterZone',
+  fallbackId: 'lore_lmop_org_lionshield',
+  aliases: ['Lionshield Coster', 'Lionshield Coster (Zona)'],
+  type: 'zone',
+  name: 'Lionshield Coster',
+  publicFields: zonePublicFields({
+    descripcion: 'Puesto comercial de suministros, armas y mercancias recuperadas. Funciona como lugar fisico, no como faccion.',
+    historia: 'Ha sufrido perdidas por robos y rutas inseguras, lo que la convierte en termometro economico de la violencia local.',
+    claves: 'Cajas, manifiestos, mercancias marcadas, rumores de cargamentos perdidos.',
+    encuentros: 'Linene puede pedir ayuda, vender equipo o detectar objetos robados.',
+    conexiones: 'Anillos de Bronce, rutas comerciales, Phandalin y posibles alijos escondidos sin conocimiento de la dueña.',
+    usoEnMesa: 'Usarlo como tienda, punto de pista logistica y lugar donde un alijo de Bhaal puede estar camuflado.',
+  }),
+  secret: 'La Sangre de Bhaal ha usado una caja doble en el almacen sin que el negocio entienda toda la red.',
+})
+
+addDefinition({
+  key: 'minersExchangeZone',
+  fallbackId: 'lore_lmop_org_miners_exchange',
+  aliases: ["Miner's Exchange", "Miner's Exchange (Zona)", 'Miners Exchange'],
+  type: 'zone',
+  name: "Miner's Exchange",
+  publicFields: zonePublicFields({
+    descripcion: 'Oficina de pesaje, compraventa minera, rumores de veta y negociacion de reclamaciones.',
+    historia: 'Su importancia crece cuando la Cueva del Eco vuelve a sonar como promesa de riqueza.',
+    claves: 'Balanzas, mapas de veta, contratos, deudas, nombres de buscadores y registros incompletos.',
+    encuentros: 'Halia puede ofrecer informacion con precio, proteccion con condiciones o silencio interesado.',
+    conexiones: 'Zhentarim, Alianza de los Lores, familia Kamenov y economia minera de Phandalin.',
+    usoEnMesa: 'Usarlo como oficina de poder economico: aqui una conversacion vale tanto como una pelea.',
+  }),
+  secret: 'Si Halia huele el operativo de Bhaal, intentara convertirlo en ventaja antes de denunciarlo.',
+})
+
 function overrideDefinition(key, partial) {
   const definition = definitionByKey.get(key)
   if (!definition) {
@@ -616,6 +970,7 @@ async function main() {
 
   await saveLoreEntries(entries, existingLore)
   await rewriteExistingLoreText(campaign.id, new Set(entries.map((entry) => entry.id)))
+  await normalizeRemainingOrganizations(campaign.id)
   await upsertLoreLinks(idByKey)
   await rewriteQuests(campaign.id)
   await rewriteTimeline(campaign.id)
@@ -851,27 +1206,70 @@ function rewriteLoreRow(entry) {
   }
 }
 
+async function normalizeRemainingOrganizations(campaignId) {
+  const existingLore = await listLore(campaignId)
+  const organizationRows = existingLore.filter((entry) => entry.type === 'organization')
+
+  for (const entry of organizationRows) {
+    const currentFields = entry.publicFields ?? {}
+    const fieldKeys = Object.keys(currentFields)
+    const isAlreadyNormalized = fieldKeys.join('|') === Object.keys(organizationPublicFields({})).join('|')
+
+    if (isAlreadyNormalized) {
+      continue
+    }
+
+    const previousSummary = Object.entries(currentFields)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\n\n')
+    const nextPublicFields = organizationPublicFields({
+      ideologia: currentFields.Ideología ?? currentFields.ideologia ?? currentFields.description ?? 'Objetivos no confirmados por el DM.',
+      descripcion: currentFields.Descripción ?? currentFields.descripcion ?? currentFields.description ?? previousSummary,
+      historia: currentFields.Historia ?? currentFields.historia ?? currentFields.historyStructure ?? previousSummary,
+      metodos: currentFields.Métodos ?? currentFields.metodos ?? currentFields.Metodos ?? 'Influencia social, recursos locales y contactos.',
+      recursos: currentFields.Recursos ?? 'Dependen de su presencia local y contactos.',
+      estadoActual: currentFields['Estado actual'] ?? 'Activo como faccion secundaria.',
+      usoEnMesa: currentFields['Uso en mesa'] ?? 'Usar como faccion secundaria con agenda propia.',
+    })
+
+    const { error } = await supabase
+      .from('lore_entries')
+      .update({ publicFields: nextPublicFields, updatedAt: now })
+      .eq('id', entry.id)
+
+    if (error) {
+      throw new Error(`Could not normalize organization "${entry.name}" (${entry.id}): ${error.message}`)
+    }
+  }
+}
+
 function createLoreLinkMap() {
   return {
     borisKamenov: ['kamenovBrothers', 'phandelverPact', 'waveEchoCave', 'lordsAlliance', 'sildar', 'bronzeRings', 'nezznar'],
     kamenovBrothers: ['borisKamenov', 'waveEchoCave', 'phandelverPact', 'nezznar'],
-    phandelverPact: ['borisKamenov', 'kamenovBrothers', 'waveEchoCave', 'lordsAlliance', 'phandalin', 'cultTiamat'],
-    waveEchoCave: ['phandelverPact', 'borisKamenov', 'lordsAlliance', 'nezznar', 'bloodOfBhaal', 'venomfang', 'cultTiamat', 'emeraldEnclave'],
-    lordsAlliance: ['borisKamenov', 'phandelverPact', 'sildar', 'iarno', 'phandalin', 'orderGauntlet', 'nezznar'],
-    bronzeRings: ['kingGral', 'hogger', 'bloodOfBhaal', 'borisKamenov'],
+    phandelverPact: ['borisKamenov', 'kamenovBrothers', 'waveEchoCave', 'lordsAlliance', 'phandalin', 'cultTiamat', 'minersExchangeZone'],
+    waveEchoCave: ['phandelverPact', 'borisKamenov', 'lordsAlliance', 'nezznar', 'bloodOfBhaal', 'venomfang', 'cultTiamat', 'emeraldEnclave', 'redWizards'],
+    lordsAlliance: ['borisKamenov', 'phandelverPact', 'sildar', 'iarno', 'phandalin', 'orderGauntlet', 'nezznar', 'minersExchangeZone'],
+    bronzeRings: ['kingGral', 'hogger', 'bloodOfBhaal', 'borisKamenov', 'lionshieldCosterZone'],
     kingGral: ['bronzeRings', 'bloodOfBhaal'],
     hogger: ['bronzeRings', 'borisKamenov'],
-    bloodOfBhaal: ['nezznar', 'iarno', 'bronzeRings', 'sisterGaraele', 'phandalin', 'waveEchoCave', 'orderGauntlet', 'cultTiamat'],
-    nezznar: ['bloodOfBhaal', 'waveEchoCave', 'bronzeRings', 'iarno', 'lordsAlliance', 'borisKamenov', 'kamenovBrothers', 'cultTiamat'],
+    bloodOfBhaal: ['nezznar', 'iarno', 'bronzeRings', 'sisterGaraele', 'phandalin', 'waveEchoCave', 'orderGauntlet', 'cultTiamat', 'harpers', 'zhentarim', 'lionshieldCosterZone'],
+    nezznar: ['bloodOfBhaal', 'waveEchoCave', 'bronzeRings', 'iarno', 'lordsAlliance', 'borisKamenov', 'kamenovBrothers', 'cultTiamat', 'redWizards'],
     iarno: ['lordsAlliance', 'bloodOfBhaal', 'sildar', 'phandalin'],
     sildar: ['lordsAlliance', 'iarno', 'borisKamenov', 'bloodOfBhaal', 'orderGauntlet'],
     reidoth: ['venomfang', 'emeraldEnclave', 'cultTiamat'],
-    sisterGaraele: ['bloodOfBhaal', 'phandalin', 'nezznar'],
-    phandalin: ['lordsAlliance', 'bloodOfBhaal', 'borisKamenov', 'sisterGaraele', 'nezznar', 'bronzeRings'],
+    sisterGaraele: ['bloodOfBhaal', 'phandalin', 'nezznar', 'harpers'],
+    phandalin: ['lordsAlliance', 'bloodOfBhaal', 'borisKamenov', 'sisterGaraele', 'nezznar', 'bronzeRings', 'lionshieldCosterZone', 'minersExchangeZone', 'zhentarim'],
     venomfang: ['reidoth', 'waveEchoCave', 'cultTiamat', 'emeraldEnclave', 'nezznar'],
     orderGauntlet: ['sildar', 'bloodOfBhaal', 'lordsAlliance'],
     emeraldEnclave: ['reidoth', 'venomfang', 'cultTiamat', 'waveEchoCave'],
     cultTiamat: ['venomfang', 'emeraldEnclave', 'waveEchoCave', 'bloodOfBhaal', 'nezznar', 'phandelverPact'],
+    harpers: ['sisterGaraele', 'bloodOfBhaal', 'zhentarim'],
+    zhentarim: ['minersExchangeZone', 'harpers', 'bloodOfBhaal', 'phandalin'],
+    cultGruumsh: ['bronzeRings', 'phandalin'],
+    redWizards: ['waveEchoCave', 'nezznar', 'phandalin'],
+    lionshieldCosterZone: ['phandalin', 'bronzeRings', 'bloodOfBhaal'],
+    minersExchangeZone: ['phandalin', 'zhentarim', 'lordsAlliance', 'phandelverPact'],
   }
 }
 

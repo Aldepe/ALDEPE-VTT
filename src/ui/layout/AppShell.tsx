@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { BookOpen, CalendarDays, LogOut, Map, NotebookPen, Plus, Save, Shield, Trash2, UserRound, UsersRound } from 'lucide-react'
+import { BookOpen, CalendarDays, LogOut, Map, Network, NotebookPen, Plus, Save, Shield, Trash2, UserRound, UsersRound } from 'lucide-react'
 import clsx from 'clsx'
 import type { AudioSettings } from '@domain/entities/audio'
 import type { BrandingAssets } from '@domain/entities/branding'
@@ -11,7 +11,7 @@ import { isDm } from '@domain/services/permissions'
 import { AudioControls } from '@ui/components/AudioControls'
 import { BrandingLogo } from '@ui/components/BrandingLogo'
 
-export type MainTab = 'character' | 'timeline' | 'lore' | 'notes' | 'battlemap'
+export type MainTab = 'character' | 'timeline' | 'lore' | 'dossier' | 'notes' | 'battlemap'
 
 interface AppShellProps {
   activeTab: MainTab
@@ -36,10 +36,11 @@ interface AppShellProps {
   viewerMember: CampaignMember
 }
 
-const tabs: Array<{ id: MainTab; label: string; icon: typeof UserRound }> = [
+const tabs: Array<{ id: MainTab; label: string; icon: typeof UserRound; dmOnly?: boolean }> = [
   { id: 'character', label: 'Ficha', icon: UserRound },
   { id: 'timeline', label: 'Cronograma', icon: CalendarDays },
   { id: 'lore', label: 'Lore', icon: BookOpen },
+  { id: 'dossier', label: 'Dossier DM', icon: Network, dmOnly: true },
   { id: 'notes', label: 'Notas', icon: NotebookPen },
   { id: 'battlemap', label: 'Battlemap', icon: Map },
 ]
@@ -85,6 +86,7 @@ export function AppShell({
   const playerMembers = useMemo(() => members.filter((member) => member.role === 'player'), [members])
   const [selectedOwnerUserId, setSelectedOwnerUserId] = useState(playerMembers[0]?.userId ?? '')
   const ownerUserId = selectedOwnerUserId || playerMembers[0]?.userId || viewerMember.userId
+  const visibleTabs = tabs.filter((tab) => !tab.dmOnly || isDm(viewerMember))
 
   return (
     <div className="app-frame">
@@ -100,7 +102,7 @@ export function AppShell({
         </div>
 
         <nav className="tab-list">
-          {tabs.map((tab) => {
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon
             return (
               <button
