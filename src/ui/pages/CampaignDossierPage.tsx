@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Boxes, CheckCircle2, Circle, Eye, KeyRound, Minus, Network, Plus, ScrollText, ShieldAlert, Skull, UsersRound } from 'lucide-react'
-import { bloodOfBhaalDossier, type DossierItem } from '@shared/constants/phandelverDossier'
+import { bloodOfBhaalDossier, type DossierDiscovery, type DossierItem } from '@shared/constants/phandelverDossier'
 import { EmptyState } from '@ui/components/EmptyState'
 
 interface CampaignDossierPageProps {
@@ -10,7 +10,12 @@ interface CampaignDossierPageProps {
 
 const viewIcons = [ScrollText, Network, Eye, UsersRound, ShieldAlert, Boxes, KeyRound]
 
-function renderFactGrid(item: DossierItem) {
+interface FactGridSource {
+  title: string
+  fields?: Array<{ label: string; value: string }>
+}
+
+function renderFactGrid(item: FactGridSource) {
   if (!item.fields?.length) {
     return null
   }
@@ -46,13 +51,22 @@ function renderDetailList(title: string, items?: string[]) {
 
 export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
   const [activeViewId, setActiveViewId] = useState(bloodOfBhaalDossier.views[0].id)
+  const [activeDiscoveryCategory, setActiveDiscoveryCategory] = useState<string>('all')
   const [reviewedItemIds, setReviewedItemIds] = useState<string[]>([])
+  const [usedDiscoveryIds, setUsedDiscoveryIds] = useState<string[]>([])
   const [clockValues, setClockValues] = useState<Record<string, number>>(() =>
     Object.fromEntries(bloodOfBhaalDossier.clocks.map((clock) => [clock.id, clock.initial])),
   )
   const activeView = useMemo(
     () => bloodOfBhaalDossier.views.find((view) => view.id === activeViewId) ?? bloodOfBhaalDossier.views[0],
     [activeViewId],
+  )
+  const visibleDiscoveries = useMemo(
+    () =>
+      activeDiscoveryCategory === 'all'
+        ? bloodOfBhaalDossier.discoveries
+        : bloodOfBhaalDossier.discoveries.filter((discovery) => discovery.category === activeDiscoveryCategory),
+    [activeDiscoveryCategory],
   )
 
   function toggleReviewed(itemId: string) {
@@ -71,6 +85,12 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
       const nextValue = Math.min(clock.max, Math.max(0, (current[clockId] ?? clock.initial) + delta))
       return { ...current, [clockId]: nextValue }
     })
+  }
+
+  function toggleDiscoveryUsed(discoveryId: string) {
+    setUsedDiscoveryIds((current) =>
+      current.includes(discoveryId) ? current.filter((usedDiscoveryId) => usedDiscoveryId !== discoveryId) : [...current, discoveryId],
+    )
   }
 
   if (!isDm) {
@@ -162,6 +182,112 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
         </div>
       </section>
 
+      <section className="dossier-investigation section-panel" aria-labelledby="investigation-title">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Mesa de investigación urbana</p>
+            <h3 id="investigation-title">Qué han encontrado los players</h3>
+          </div>
+          <Eye size={22} aria-hidden="true" />
+        </div>
+        <p className="dossier-section-copy">
+          Elige el tipo de hallazgo que acaban de encontrar en la ciudad. Cada tarjeta te da una escena jugable con reto,
+          DC, posible acertijo o combate, pistas que entrega y hacia dónde empuja la investigación.
+        </p>
+
+        <div className="dossier-category-tabs segmented wrap" role="tablist" aria-label="Tipos de hallazgo">
+          <button
+            aria-selected={activeDiscoveryCategory === 'all'}
+            className={activeDiscoveryCategory === 'all' ? 'is-active' : undefined}
+            onClick={() => setActiveDiscoveryCategory('all')}
+            role="tab"
+            type="button"
+          >
+            Todo
+          </button>
+          {bloodOfBhaalDossier.discoveryCategories.map((category) => (
+            <button
+              aria-selected={activeDiscoveryCategory === category.id}
+              className={activeDiscoveryCategory === category.id ? 'is-active' : undefined}
+              key={category.id}
+              onClick={() => setActiveDiscoveryCategory(category.id)}
+              role="tab"
+              type="button"
+              title={category.detail}
+            >
+              {category.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="dossier-discovery-grid">
+          {visibleDiscoveries.map((discovery: DossierDiscovery) => {
+            const category = bloodOfBhaalDossier.discoveryCategories.find((candidate) => candidate.id === discovery.category)
+            const isUsed = usedDiscoveryIds.includes(discovery.id)
+            return (
+              <article className={isUsed ? 'dossier-discovery-card is-used' : 'dossier-discovery-card'} key={discovery.id}>
+                <div className="dossier-discovery-heading">
+                  <div>
+                    <span>{category?.label ?? discovery.category}</span>
+                    <h4>{discovery.title}</h4>
+                  </div>
+                  <button className="ghost-button" onClick={() => toggleDiscoveryUsed(discovery.id)} type="button">
+                    {isUsed ? <CheckCircle2 size={16} aria-hidden="true" /> : <Circle size={16} aria-hidden="true" />}
+                    {isUsed ? 'Usado' : 'Usar'}
+                  </button>
+                </div>
+                <p>{discovery.trigger}</p>
+                <p className="dossier-setup-line">{discovery.setup}</p>
+                <div className="dossier-challenge-strip">
+                  <span>{discovery.challengeKind}</span>
+                  <strong>{discovery.difficulty}</strong>
+                </div>
+                <p className="dossier-goal-line">{discovery.goal}</p>
+                {renderFactGrid(discovery)}
+                <div className="dossier-detail-columns">
+                  {renderDetailList('Reto / DC', discovery.checks)}
+                  {renderDetailList('Contenido', discovery.contents)}
+                  {renderDetailList('Seguridad', discovery.security)}
+                  {renderDetailList('Acertijo', discovery.puzzle)}
+                  {renderDetailList('Combate', discovery.combat)}
+                  {renderDetailList('Pistas', discovery.clues)}
+                  {renderDetailList('Recompensas', discovery.rewards?.map((reward) => `${reward.label}: ${reward.value}`))}
+                  {renderDetailList('Complicaciones', discovery.complications)}
+                  {renderDetailList('Siguientes pistas', discovery.nextLeads)}
+                  {renderDetailList('Notas DM', discovery.dmNotes)}
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="dossier-daily section-panel" aria-labelledby="daily-title">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Operaciones diarias</p>
+            <h3 id="daily-title">Qué hace la secta si los players no la paran</h3>
+          </div>
+          <ShieldAlert size={22} aria-hidden="true" />
+        </div>
+        <div className="dossier-daily-grid">
+          {bloodOfBhaalDossier.dailyOperations.map((operation) => (
+            <article className="dossier-daily-card" key={operation.roll}>
+              <div className="dossier-roll">{operation.roll}</div>
+              <div>
+                <h4>{operation.title}</h4>
+                <p>{operation.routine}</p>
+                <div className="dossier-detail-columns">
+                  {renderDetailList('Señales', operation.signs)}
+                  {renderDetailList('Cómo pararlo', operation.counterplay)}
+                  {renderDetailList('Si no intervienen', operation.consequences)}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="dossier-cells section-panel" aria-labelledby="cells-title">
         <div className="panel-heading">
           <div>
@@ -195,8 +321,8 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
       <section className="dossier-workspace section-panel" aria-labelledby="dossier-workspace-title">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Sistema consultable</p>
-            <h3 id="dossier-workspace-title">Operativo interactivo</h3>
+            <p className="eyebrow">Archivo de referencia</p>
+            <h3 id="dossier-workspace-title">Detalles del operativo</h3>
           </div>
           <Network size={22} aria-hidden="true" />
         </div>

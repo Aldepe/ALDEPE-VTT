@@ -47,6 +47,43 @@ export interface DossierClock {
   segments: string[]
 }
 
+export interface DossierDiscoveryCategory {
+  id: string
+  label: string
+  detail: string
+}
+
+export interface DossierDiscovery {
+  id: string
+  category: string
+  title: string
+  trigger: string
+  setup: string
+  challengeKind: string
+  difficulty: string
+  goal: string
+  fields?: DossierFact[]
+  checks?: string[]
+  contents?: string[]
+  security?: string[]
+  puzzle?: string[]
+  combat?: string[]
+  clues?: string[]
+  rewards?: DossierFact[]
+  complications?: string[]
+  nextLeads?: string[]
+  dmNotes?: string[]
+}
+
+export interface DossierDailyOperation {
+  roll: string
+  title: string
+  routine: string
+  signs: string[]
+  counterplay: string[]
+  consequences: string[]
+}
+
 export const bloodOfBhaalDossier = {
   title: 'Operativo Sangre de Bhaal',
   subtitle: 'Red secreta de Phandalin',
@@ -65,48 +102,629 @@ export const bloodOfBhaalDossier = {
   ],
   clocks: [
     {
-      id: 'document-location',
-      title: 'Rastro del documento',
-      detail: 'Mide cuánto ha avanzado la Sangre de Bhaal hacia la ubicación exacta del registro de propiedad.',
-      max: 6,
-      initial: 1,
-      segments: [
-        'Saben que Boris trae papeles.',
-        'Identifican que no es una carta ordinaria.',
-        'Aíslan quién lo ha visto.',
-        'Detectan el primer escondite.',
-        'Preparan sustitución o robo.',
-        'Fuerzan traslado al archivo bajo Tresendar.',
-      ],
-    },
-    {
-      id: 'player-pressure',
-      title: 'Presión de los players',
-      detail: 'Sube cuando investigan, protegen testigos o rompen alijos. A más presión, la secta comete errores.',
+      id: 'bhaal-system',
+      title: 'Sistema de Bhaal',
+      detail: 'Lo que el grupo entiende sobre la red real: informantes, marcas, alijos, tapaderas y núcleo de la mansión.',
       max: 5,
       initial: 0,
       segments: [
-        'Preguntas incómodas.',
-        'Un informante cambia de bando.',
-        'Un alijo queda expuesto.',
-        'La célula mueve una reunión.',
-        'Nezznar exige una acción arriesgada.',
+        'Hay niños de recados y vagabundos observando.',
+        'Las marcas de tiza coordinan vigilancia y rutas.',
+        'Los alijos tienen funciones separadas: identidad, combate, asesinato.',
+        'Taberna y carnicería sostienen dinero, cuerpos y coartadas.',
+        'La mayoría de operativos reales se concentran bajo la mansión.',
       ],
     },
     {
-      id: 'vault-lockdown',
-      title: 'Cierre de la bóveda',
-      detail: 'Mide cuánto se ha blindado el destino final bajo la mansión. Si llega al máximo, el acceso requiere resolver el piano.',
+      id: 'cipher-system',
+      title: 'Sistema de cifrado',
+      detail: 'Avance del grupo descifrando palomas, palabras de oficio, colores de tiza y notas musicales.',
+      max: 5,
+      initial: 0,
+      segments: [
+        'Colores de tiza indican acción: observar, limpiar, mover, peligro.',
+        'Mensajes cifrados usan palabras de comercio y carnicería.',
+        'Anillas de paloma indican prioridad y célula.',
+        'Iniciales musicales esconden Fa-Mi-Fa-Re-Mi-Do-Re-Re.',
+        'Pueden leer una orden operativa completa sin ayuda.',
+      ],
+    },
+    {
+      id: 'permit-trail',
+      title: 'Rastro del permiso',
+      detail: 'Lo que han deducido sobre dónde está el registro de propiedad de la mina y cómo se mueve.',
+      max: 6,
+      initial: 0,
+      segments: [
+        'Boris trae un documento, no solo un contrato.',
+        'El documento puede validar legalmente la mina.',
+        'La secta intenta provocar traslados, no solo robar.',
+        'Existe una copia falsa preparada.',
+        'El destino final está bajo la mansión.',
+        'El archivo se abre con el piano de Dies Irae.',
+      ],
+    },
+    {
+      id: 'mansion-access',
+      title: 'Acceso a la base',
+      detail: 'Pistas acumuladas sobre la entrada oculta bajo la mansión y el motivo musical que la abre.',
       max: 4,
       initial: 0,
       segments: [
-        'Archivo limpio preparado.',
-        'Piano afinado con sigilo de sangre.',
-        'Custodio asignado a la sala de música.',
-        'Documento sellado bajo Tresendar.',
+        'Oyen o encuentran el motivo funerario repetido.',
+        'Relacionan Dies Irae con Bhaal y la muerte racional.',
+        'Aprenden la secuencia Fa-Mi-Fa-Re-Mi-Do-Re-Re.',
+        'Saben que debe tocarse en el piano de la mansión.',
       ],
     },
   ] satisfies DossierClock[],
+  discoveryCategories: [
+    { id: 'informants', label: 'Informantes', detail: 'Niños de recados y vagabundos usados como ojos baratos.' },
+    { id: 'communications', label: 'Comunicación', detail: 'Palomares, mensajes cifrados y marcas de tiza de colores.' },
+    { id: 'caches', label: 'Alijos', detail: 'Identidad, combate y asesinato; separados para que una caída no revele todo.' },
+    { id: 'safehouses', label: 'Pisos francos', detail: 'Casas discretas con equipo, comida y coartadas para ocultarse días.' },
+    { id: 'fronts', label: 'Tapaderas', detail: 'Taberna para blanquear y carnicería para deshacerse de cuerpos.' },
+    { id: 'agents', label: 'Operativos', detail: 'Espías, asesinos, infiltrado de Tymora y núcleo concentrado bajo la mansión.' },
+    { id: 'routes', label: 'Rutas', detail: 'Horno sobornado, trastiendas abiertas y parkour por patios y cajas.' },
+    { id: 'mansion', label: 'Mansión', detail: 'Pistas finales hacia el permiso, la base y el piano de Dies Irae.' },
+  ] satisfies DossierDiscoveryCategory[],
+  discoveries: [
+    {
+      id: 'errand-kid-watching',
+      category: 'informants',
+      title: 'Niño de recados mirando demasiado',
+      trigger: 'Un niño aparece en dos escenas distintas, siempre cerca del grupo o de Boris.',
+      setup:
+        'El niño cree que trabaja para una red de contrabando. Le pagan con comida, una moneda y la promesa de que nadie molestará a su familia.',
+      challengeKind: 'Social / persecución corta',
+      difficulty: 'DC 13-15',
+      goal: 'Que el grupo entienda que hay ojos baratos por la ciudad sin revelar aún la secta.',
+      fields: [
+        { label: 'No sabe', value: 'Bhaal, Nezznar, mansión' },
+        { label: 'Sí sabe', value: 'Quién le paga, dónde deja marcas' },
+        { label: 'Riesgo', value: 'Si lo asustan, corre hacia una ruta preparada' },
+      ],
+      checks: [
+        'Perception DC 13 para darse cuenta de que repite ruta sin hacer recados reales.',
+        'Athletics o Acrobatics DC 13 para alcanzarlo sin armar escándalo.',
+        'Persuasion DC 14 con comida/protección; Intimidation DC 15 funciona, pero sube presión y lo vuelve menos fiable.',
+      ],
+      clues: [
+        'Describe una marca de tiza azul como "la señal de mirar".',
+        'Sabe que una campanada del horno significa que la puerta trasera estará abierta.',
+      ],
+      rewards: [
+        { label: 'Sistema de Bhaal', value: '+1: usan niños de recados como vigilancia periférica.' },
+        { label: 'Rutas', value: 'Desbloquea el horno sobornado.' },
+      ],
+      complications: [
+        'Un asesino menor lo observa desde una esquina; si el grupo se pasa, el niño desaparece dos días.',
+      ],
+      nextLeads: ['Horno de la calle baja', 'Marca de tiza azul', 'Vagabundo del pozo'],
+    },
+    {
+      id: 'beggar-mark-network',
+      category: 'informants',
+      title: 'Vagabundo marcando piedras junto al pozo',
+      trigger: 'Un vagabundo mueve tres piedras cada vez que una persona concreta entra o sale de una calle.',
+      setup:
+        'No sabe leer. Comunica conteos y dirección con piedras, tiza y cordeles. Es víctima de presión económica, no devoto.',
+      challengeKind: 'Empatía / investigación',
+      difficulty: 'DC 12-15',
+      goal: 'Permitir una escena humana que revele el sistema sin convertir a todos los pobres del pueblo en enemigos.',
+      checks: [
+        'Insight DC 12 para notar miedo real, no fanatismo.',
+        'Investigation DC 14 para reconstruir el patrón de piedras.',
+        'Persuasion DC 15 si le ofrecen techo seguro; baja a DC 12 si ya protegieron al niño de recados.',
+      ],
+      clues: [
+        'Rojo significa peligro; azul significa observar; blanco significa mover paquete; negro significa limpiar.',
+        'Ha visto paquetes salir de la carnicería sin olor a carne.',
+      ],
+      rewards: [
+        { label: 'Cifrado', value: '+1: colores básicos de tiza.' },
+        { label: 'Tapaderas', value: 'Abre pista hacia la carnicería.' },
+      ],
+      complications: [
+        'Si hablan con él en público, un recadero pone tiza negra cerca del pozo y la célula borra un alijo menor.',
+      ],
+      nextLeads: ['Carnicería de Murn', 'Tiza negra', 'Alijo de identidad'],
+    },
+    {
+      id: 'dovecote-roof',
+      category: 'communications',
+      title: 'Palomar en un tejado discreto',
+      trigger: 'Ven una paloma con anilla azul volver a un tejado que nadie usa oficialmente.',
+      setup:
+        'El palomar interior manda mensajes dentro de Phandalin. Las anillas indican prioridad; el texto parece inventario aburrido.',
+      challengeKind: 'Infiltración / puzzle de mensajes',
+      difficulty: 'DC 14-16',
+      goal: 'Que consigan un mensaje cifrado sin entenderlo completo aún.',
+      fields: [
+        { label: 'Guardia', value: 'Ninguno fijo; alarma de cuerda' },
+        { label: 'Botín de pista', value: '2 mensajes, 3 anillas, grano teñido' },
+        { label: 'Fallo', value: 'La paloma marcada no vuelve al día siguiente' },
+      ],
+      checks: [
+        'Athletics DC 12 para subir; Acrobatics DC 15 para no romper tejas.',
+        'Perception DC 14 para detectar la cuerda con campanilla.',
+        'Investigation DC 15 para ver que "costillas limpias" no habla de comida, sino de cadáveres.',
+      ],
+      clues: [
+        'Anilla azul: vigilancia. Roja: acción violenta. Blanca: traslado. Negra: limpieza de pruebas.',
+        'Un mensaje menciona "ocho notas antes de bajar".',
+      ],
+      rewards: [
+        { label: 'Cifrado', value: '+1: sistema de anillas.' },
+        { label: 'Acceso mansión', value: '+1 si conectan las ocho notas con el piano.' },
+      ],
+      complications: ['Si fallan por 5+, un operativo mueve el palomar exterior durante 24 horas.'],
+      nextLeads: ['Mensaje cifrado', 'Carnicería', 'Sala de música de la mansión'],
+    },
+    {
+      id: 'chalk-color-crossing',
+      category: 'communications',
+      title: 'Marcas de tiza de colores por la calle',
+      trigger: 'Tras una escena social, aparece una marca de tiza donde antes no había nada.',
+      setup:
+        'La red usa marcas simples porque son rápidas y negables. Cada marca dura poco: lluvia, escoba o niño pagado.',
+      challengeKind: 'Observación / deducción',
+      difficulty: 'DC 12-16',
+      goal: 'Dar un puzzle urbano repetible que el grupo pueda empezar a leer por patrones.',
+      checks: [
+        'Perception DC 12 para notar la marca antes de que la borren.',
+        'Investigation DC 14 para asociar color con acción.',
+        'Survival DC 15 para seguir una cadena de marcas sin perderse entre calles.',
+      ],
+      puzzle: [
+        'Azul = observar. Blanco = mover. Negro = limpiar. Rojo = herir o matar. Verde = ruta abierta.',
+        'Una flecha incompleta no apunta a un lugar; apunta a la siguiente marca visible desde una esquina concreta.',
+      ],
+      clues: [
+        'Verde aparece cerca del horno cuando la trastienda está abierta.',
+        'Negro aparece cerca de la carnicería después de una desaparición.',
+      ],
+      rewards: [
+        { label: 'Cifrado', value: '+1: tabla de colores.' },
+        { label: 'Sistema de Bhaal', value: '+1: la red coordina vigilancia sin hablar.' },
+      ],
+      complications: ['Si el grupo marca tiza falsa y falla Deception DC 14, la secta responde con una marca roja al día siguiente.'],
+      nextLeads: ['Horno sobornado', 'Carnicería', 'Ruta de parkour'],
+    },
+    {
+      id: 'ciphered-butcher-note',
+      category: 'communications',
+      title: 'Mensaje cifrado con jerga de carnicería',
+      trigger: 'Encuentran una nota con pedidos de carne que no cuadran con cantidades reales.',
+      setup:
+        'El cifrado mezcla oficio y acción. No busca resistir a expertos; busca parecer aburrido para todos los demás.',
+      challengeKind: 'Acertijo / herramientas',
+      difficulty: 'DC 15',
+      goal: 'Dar la primera puerta real al sistema de cifrado.',
+      checks: [
+        'Investigation DC 15 para detectar que los números son posiciones de palabras.',
+        'Insight DC 13 si ya conocen la carnicería como tapadera.',
+        'Thieves Tools, Calligrapher Tools o Cook Utensils DC 14 para reconstruir una parte del código.',
+      ],
+      puzzle: [
+        'Costillas = cuerpos o testigos.',
+        'Grasa = dinero blanqueado.',
+        'Corte limpio = asesinato sin ruido.',
+        'Pieza al frío = esconder a alguien en piso franco.',
+      ],
+      clues: [
+        'La nota dice: "ocho cortes antes de bajar", frase espejo de las ocho notas del piano.',
+        'Menciona "la casa grande" sin decir mansión.',
+      ],
+      rewards: [
+        { label: 'Cifrado', value: '+1: palabras de oficio.' },
+        { label: 'Permiso', value: '+1 si relacionan "pieza al frío" con mover el documento.' },
+      ],
+      complications: ['Si copian la nota mal, descifran una orden falsa que apunta a la taberna.'],
+      nextLeads: ['Carnicería', 'Piso franco frío', 'Piano de la mansión'],
+    },
+    {
+      id: 'identity-cache',
+      category: 'caches',
+      title: 'Alijo de identidad',
+      trigger: 'Tras seguir tiza blanca o un recadero, encuentran una caja seca detrás de un falso zócalo.',
+      setup:
+        'Este alijo permite mover un agente o testigo sin que parezca huida: ropa común, nombres limpios y documentos baratos.',
+      challengeKind: 'Registro / trampa menor',
+      difficulty: 'DC 13-15',
+      goal: 'Revelar que la secta puede borrar personas sin magia espectacular.',
+      checks: [
+        'Investigation DC 13 para encontrar doble fondo.',
+        'Sleight of Hand DC 14 para abrir sin romper el sello de aviso.',
+        'History DC 15 para detectar que una carta de recomendación usa un cargo municipal inexistente.',
+      ],
+      clues: [
+        'Una identidad falsa repite iniciales F-M-F-R-M-D-R-R como clave de orden.',
+        'Hay una identidad preparada para un "custodio de archivo".',
+      ],
+      rewards: [
+        { label: 'Sistema de Bhaal', value: '+1: alijos por función, no por tesoro.' },
+        { label: 'Acceso mansión', value: '+1 si detectan las iniciales musicales.' },
+      ],
+      complications: ['Abrirlo torpemente deja polvo rojo en los dedos; un informante puede reconocer al intruso después.'],
+      nextLeads: ['Custodio de archivo', 'Mansión', 'Mensaje de ocho iniciales'],
+    },
+    {
+      id: 'combat-cache',
+      category: 'caches',
+      title: 'Alijo de equipamiento de combate',
+      trigger: 'El grupo encuentra armas envueltas en paño aceitado cerca de una ruta rápida.',
+      setup:
+        'No es arsenal militar. Es equipo para armar a dos operativos y que una agresión parezca bronca local.',
+      challengeKind: 'Emboscada opcional / investigación',
+      difficulty: 'DC 14 o combate fácil-medio',
+      goal: 'Dar una amenaza tangible sin revelar aún al núcleo.',
+      checks: [
+        'Investigation DC 14 para ver que las armas están numeradas con puntos de tiza.',
+        'Perception DC 15 para notar a un asesino esperando a ver quién toca el alijo.',
+      ],
+      combat: [
+        '1 asesino menor y 1 matón si quieres combate rápido.',
+        'Si el grupo va tocado, usa solo persecución: el asesino intenta huir hacia la ruta de parkour.',
+      ],
+      clues: [
+        'Las armas tienen grasa de carnicería, no aceite de herrero.',
+        'Una daga lleva tiza roja en el pomo: señal de "corte limpio".',
+      ],
+      rewards: [
+        { label: 'Sistema de Bhaal', value: '+1: separan equipo por misión.' },
+        { label: 'Tapaderas', value: 'Conecta carnicería con violencia encubierta.' },
+      ],
+      complications: ['Si lo dejan intacto, al día siguiente se usa contra un testigo menor.'],
+      nextLeads: ['Carnicería', 'Asesino de la ruta', 'Tiza roja'],
+    },
+    {
+      id: 'assassination-cache',
+      category: 'caches',
+      title: 'Alijo de asesinato',
+      trigger: 'Encuentran una caja muy pequeña donde esperaban armas grandes.',
+      setup:
+        'Este alijo es quirúrgico: veneno, cuerda fina, aguja, ficha de objetivo y una frase ritualizada.',
+      challengeKind: 'Horror investigativo / desarme',
+      difficulty: 'DC 15-17',
+      goal: 'Subir el tono: no son solo contrabandistas, alguien está eliminando sospechosos.',
+      checks: [
+        'Medicine DC 15 para identificar veneno anticoagulante.',
+        'Investigation DC 16 para encontrar la ficha de objetivo bajo el forro.',
+        'Religion DC 17 para conectar la frase "menos pensamiento, menos dolor" con Bhaal.',
+      ],
+      clues: [
+        'El objetivo actual es alguien que ha preguntado por la caja municipal.',
+        'La frase filosófica apunta a exterminio de racionales, no simple crimen.',
+      ],
+      rewards: [
+        { label: 'Sistema de Bhaal', value: '+1: aparece la ideología real.' },
+        { label: 'Permiso', value: '+1: alguien sospecha de la custodia municipal.' },
+      ],
+      complications: ['Si tardan, el objetivo aparece herido o muerto fuera de escena y queda una marca roja.'],
+      nextLeads: ['Caja municipal', 'Infiltrado de Tymora', 'Asesino filosófico'],
+    },
+    {
+      id: 'safehouse-two-days',
+      category: 'safehouses',
+      title: 'Piso franco preparado para varios días',
+      trigger: 'Una puerta normal abre a una habitación demasiado ordenada para una casa abandonada.',
+      setup:
+        'Hay cama, comida seca, ropa, agua, brasero sin humo, documentos de coartada y una salida estrecha. No está pensado para luchar, sino para desaparecer.',
+      challengeKind: 'Exploración / seguridad',
+      difficulty: 'DC 14-16',
+      goal: 'Mostrar que la célula puede esconder agentes y testigos sin llamar la atención.',
+      checks: [
+        'Investigation DC 14 para detectar inventario por días.',
+        'Perception DC 15 para ver el hilo de alarma en la salida trasera.',
+        'Survival DC 13 para saber que alguien durmió ahí hace menos de 24 horas.',
+      ],
+      contents: [
+        'Ropa de trabajador, pan seco, cantimplora, brasero, manta, cera negra, cuerda, dos nombres falsos.',
+        'Una lista de horarios de la iglesia de Tymora y la taberna.',
+      ],
+      clues: [
+        'La lista de horarios conecta iglesia y taberna como puntos de control.',
+        'Hay una nota: "si el papel se mueve, casa grande".',
+      ],
+      rewards: [
+        { label: 'Permiso', value: '+1: si el papel corre peligro, lo llevan a la mansión.' },
+        { label: 'Sistema de Bhaal', value: '+1: pisos para ocultarse días.' },
+      ],
+      complications: ['Si se quedan demasiado, llega un recadero con comida y puede huir hacia el horno.'],
+      nextLeads: ['Iglesia de Tymora', 'Taberna', 'Horno sobornado'],
+    },
+    {
+      id: 'laundering-tavern',
+      category: 'fronts',
+      title: 'Taberna usada para blanquear dinero',
+      trigger: 'Las ganancias de una noche no cuadran con la cantidad de clientes.',
+      setup:
+        'La taberna no es la base. Es la lavandería: caja, mesas de juego falsas, deudas inventadas y pagos por protección.',
+      challengeKind: 'Social / contabilidad',
+      difficulty: 'DC 14-16',
+      goal: 'Que parezca crimen local hasta que el grupo enlace dinero, alijos y mansión.',
+      checks: [
+        'Investigation DC 15 en caja para ver ganancias infladas.',
+        'Insight DC 14 con camarero para notar miedo a una persona que no está presente.',
+        'Deception DC 16 para hacerse pasar por cobrador y provocar un contacto.',
+      ],
+      clues: [
+        'Los pagos grandes coinciden con noches en que se movieron palomas.',
+        'Un recibo marca "cena para la casa grande" aunque nadie entregó comida allí.',
+      ],
+      rewards: [
+        { label: 'Sistema de Bhaal', value: '+1: hay negocio tapadera para lavar dinero.' },
+        { label: 'Permiso', value: '+1 si conectan pagos con traslado a mansión.' },
+      ],
+      complications: ['El dueño no es cultista; si lo exponen sin protegerlo, la secta lo usa como ejemplo.'],
+      nextLeads: ['Carnicería', 'Casa grande', 'Palomar'],
+    },
+    {
+      id: 'butcher-cleanup',
+      category: 'fronts',
+      title: 'Carnicería para deshacerse de cuerpos',
+      trigger: 'Un olor metálico fuerte llega de una carnicería que dice no haber recibido ganado.',
+      setup:
+        'La carnicería limpia rastros, destruye cuerpos y codifica órdenes con lenguaje de cortes. Es una de las pistas más oscuras.',
+      challengeKind: 'Infiltración / horror sobrio',
+      difficulty: 'DC 15-17',
+      goal: 'Revelar que la secta elimina sospechosos y tiene logística de ocultación.',
+      checks: [
+        'Perception DC 15 para distinguir olor de sangre humanoide bajo especias.',
+        'Investigation DC 16 para encontrar una mesa con ranura de drenaje no comercial.',
+        'Stealth DC 15 para registrar la trastienda sin que el carnicero cierre la calle.',
+      ],
+      clues: [
+        'Los pedidos cifrados usan cortes como verbos operativos.',
+        'Hay un nombre tachado: posible sospechoso eliminado por preguntar por el permiso.',
+      ],
+      rewards: [
+        { label: 'Cifrado', value: '+1: jerga de carnicería.' },
+        { label: 'Sistema de Bhaal', value: '+1: tapadera para limpieza de cuerpos.' },
+      ],
+      complications: ['Puede disparar combate con 1 carnicero matón y 1 asesino si el grupo entra sin plan.'],
+      nextLeads: ['Alijo de asesinato', 'Mensaje cifrado', 'Taberna'],
+    },
+    {
+      id: 'caught-spy',
+      category: 'agents',
+      title: 'Pillan a alguien espiándolos',
+      trigger: 'Un mismo rostro aparece tras tres cambios de calle o escucha detrás de una puerta.',
+      setup:
+        'Es un observador menor, no un fanático. Tiene instrucciones de huir hacia una ruta rápida y soltar tiza negra si lo atrapan.',
+      challengeKind: 'Persecución / interrogatorio no gráfico',
+      difficulty: 'DC 13-16',
+      goal: 'Dar una escena reactiva cuando los players notan vigilancia.',
+      checks: [
+        'Perception DC 13 para confirmar seguimiento.',
+        'Athletics/Acrobatics DC 14 para cortar la huida.',
+        'Insight DC 15 para separar miedo de mentira preparada.',
+      ],
+      clues: [
+        'Sabe de niños, vagabundos y marcas de tiza, pero no de la mansión.',
+        'Si lo tratan con protección, revela que la mayoría de operativos "de verdad" entran por la casa grande.',
+      ],
+      rewards: [
+        { label: 'Sistema de Bhaal', value: '+1: jerarquía entre observadores y operativos reales.' },
+        { label: 'Mansión', value: 'Pista débil hacia la casa grande.' },
+      ],
+      complications: ['Si falla el interrogatorio, activa tiza negra y un piso franco se vacía.'],
+      nextLeads: ['Ruta de parkour', 'Casa grande', 'Piso franco'],
+    },
+    {
+      id: 'two-assassins',
+      category: 'agents',
+      title: 'Los dos asesinos de la facción',
+      trigger: 'Cuando el grupo expone dos piezas de la red, Nezznar autoriza una eliminación limpia.',
+      setup:
+        'No hay muchos asesinos en la ciudad: solo dos. Son cuidadosos, filosóficos y prefieren aislar antes que pelear contra todo el grupo.',
+      challengeKind: 'Combate / contraemboscada',
+      difficulty: 'Combate medio o skill challenge DC 15',
+      goal: 'Hacer sentir que la red responde de forma quirúrgica, no con oleadas infinitas.',
+      fields: [
+        { label: 'Asesino 1', value: 'Voryn "Soga Roja": cuerda, caídas, silencios' },
+        { label: 'Asesino 2', value: 'Maela "Diente Frío": veneno, aguja, coartadas' },
+      ],
+      combat: [
+        'Usa 2 asesinos si el grupo va fuerte; si no, 1 asesino + huida + rehén social.',
+        'Objetivo prioritario: testigo, informante protegido o portador de prueba.',
+      ],
+      clues: [
+        'Uno lleva una nota con tres iniciales musicales.',
+        'El otro sabe que la iglesia tiene un infiltrado, pero no su nombre real.',
+      ],
+      rewards: [
+        { label: 'Acceso mansión', value: '+1: iniciales musicales hacia Dies Irae.' },
+        { label: 'Operativos', value: 'Confirma que casi todo el núcleo está en la mansión.' },
+      ],
+      complications: ['Si ambos mueren demasiado pronto, la mansión entra en modo cierre y acelera el reloj de permiso.'],
+      nextLeads: ['Iglesia de Tymora', 'Piano', 'Mansión'],
+    },
+    {
+      id: 'tymora-infiltrator',
+      category: 'agents',
+      title: 'Infiltrado en la iglesia de Tymora',
+      trigger: 'Una ayuda religiosa llega demasiado tarde o una confesión privada aparece resumida en una nota cifrada.',
+      setup:
+        'El infiltrado no dirige la iglesia. Hace tareas pequeñas: escuchar, retrasar ayuda, mover llaves y sembrar culpabilidad.',
+      challengeKind: 'Misterio social',
+      difficulty: 'DC 14-17',
+      goal: 'Que la iglesia deje de ser zona completamente segura sin convertirla en enemiga.',
+      checks: [
+        'Insight DC 15 para notar falsa devoción al hablar de sufrimiento.',
+        'Religion DC 14 para detectar una frase incompatible con Tymora.',
+        'Investigation DC 16 para hallar una nota escondida en un libro de donaciones.',
+      ],
+      clues: [
+        'La nota menciona "el réquiem abre abajo".',
+        'El infiltrado informa sobre quién protege a Boris y quién pregunta por el permiso.',
+      ],
+      rewards: [
+        { label: 'Acceso mansión', value: '+1: el réquiem abre algo bajo tierra.' },
+        { label: 'Permiso', value: '+1: la secta vigila a quien protege a Boris.' },
+      ],
+      complications: ['Si lo acusan sin prueba, la comunidad se divide y la secta gana cobertura social un día.'],
+      nextLeads: ['Dies Irae', 'Piano', 'Registro de protección de Boris'],
+    },
+    {
+      id: 'bribed-oven-route',
+      category: 'routes',
+      title: 'Horno sobornado y puerta de trastienda',
+      trigger: 'Un informante dice que, tras una campanada concreta, siempre hay una puerta abierta.',
+      setup:
+        'El panadero no es sectario. Está sobornado para dejar abierta la trastienda durante pocos minutos después de una campanada.',
+      challengeKind: 'Sigilo cronometrado',
+      difficulty: 'DC 13-15',
+      goal: 'Crear una ruta urbana tangible que puedan usar o vigilar.',
+      checks: [
+        'Perception DC 13 para identificar qué campana activa la ruta.',
+        'Stealth DC 14 para cruzar sin mancharse de harina o hollín.',
+        'Persuasion DC 15 para romper el soborno del panadero sin exponerlo.',
+      ],
+      clues: [
+        'La ruta conecta tiza verde con un piso franco.',
+        'Una bandeja tiene marcadas ocho muescas: ritmo de aviso usado por recaderos.',
+      ],
+      rewards: [
+        { label: 'Sistema de Bhaal', value: '+1: rutas rápidas por negocios sobornados.' },
+        { label: 'Acceso mansión', value: '+1 si conectan las ocho muescas con el motivo musical.' },
+      ],
+      complications: ['Si la usan repetidamente, la secta cambia la campanada y coloca un observador.'],
+      nextLeads: ['Piso franco', 'Ruta de parkour', 'Ocho muescas'],
+    },
+    {
+      id: 'parkour-shortcut',
+      category: 'routes',
+      title: 'Ruta de parkour entre casas y cajas',
+      trigger: 'Durante una persecución, un operativo cruza patios como si el camino estuviera preparado.',
+      setup:
+        'Cajas, barriles, toldos y tablones están dispuestos para acortar dos calles. Parece desorden urbano hasta que se usa.',
+      challengeKind: 'Persecución física',
+      difficulty: 'DC 13-16',
+      goal: 'Dar una ruta memorable que haga la ciudad jugable, no solo descriptiva.',
+      checks: [
+        'Acrobatics DC 14 para seguir sin perder velocidad.',
+        'Athletics DC 13 para saltar un muro bajo.',
+        'Perception DC 15 para ver que los elementos fueron colocados a propósito.',
+      ],
+      clues: [
+        'La ruta termina cerca de la taberna y un callejón hacia la mansión.',
+        'Un tablón tiene tiza verde en la cara inferior.',
+      ],
+      rewards: [
+        { label: 'Sistema de Bhaal', value: '+1: infraestructura urbana preparada.' },
+        { label: 'Mansión', value: 'Pista de flujo: la ruta empuja hacia la casa grande.' },
+      ],
+      complications: ['Si fallan por 5+, caen en una zona visible y la secta identifica quién les persigue.'],
+      nextLeads: ['Taberna', 'Mansión', 'Tiza verde'],
+    },
+    {
+      id: 'daily-random-operation',
+      category: 'mansion',
+      title: 'Operación diaria de la secta',
+      trigger: 'Al empezar cada día en Phandalin, tira o elige una operación.',
+      setup:
+        'La ciudad debe sentirse viva. La secta no espera quieta: chequea, mueve, limpia, infiltra o elimina lentamente.',
+      challengeKind: 'Reloj / evento urbano',
+      difficulty: 'Variable',
+      goal: 'Mantener presión y dar oportunidades de investigación sin railroading.',
+      checks: [
+        'Si los players vigilan una zona correcta, dales un encuentro de esa categoría.',
+        'Si vigilan una zona equivocada, dales una señal parcial y avanza un reloj enemigo.',
+        'Si no investigan, ejecuta una operación y muestra la consecuencia al día siguiente.',
+      ],
+      clues: [
+        'Cada operación deja una marca mínima: tiza, paloma, recibo, olor de carnicería, campanada o música.',
+      ],
+      rewards: [
+        { label: 'Mesa', value: 'Usar la tabla diaria de operaciones como motor de misterio.' },
+      ],
+      nextLeads: ['Tabla diaria', 'Relojes', 'Categoría del hallazgo'],
+    },
+    {
+      id: 'mansion-piano-final',
+      category: 'mansion',
+      title: 'Piano de Dies Irae bajo la mansión',
+      trigger: 'Cuando tengan suficientes pistas: ocho notas, réquiem, casa grande, archivo bajo tierra.',
+      setup:
+        'El piano no es un acertijo gratuito. Es la suma de palomas, iniciales, ritmos, infiltrado de Tymora y obsesión funeraria de Bhaal.',
+      challengeKind: 'Acertijo final / infiltración',
+      difficulty: 'DC 15 si faltan pistas; automático si reunieron 4 pistas musicales',
+      goal: 'Abrir la base oculta y llegar al destino final del permiso.',
+      checks: [
+        'Performance DC 13 si conocen la melodía.',
+        'Religion DC 15 para reconocer Dies Irae como clave de muerte y juicio.',
+        'Investigation DC 16 para ordenar pistas F-M-F-R-M-D-R-R.',
+      ],
+      puzzle: [
+        'Secuencia: Fa-Mi-Fa-Re-Mi-Do-Re-Re.',
+        'Si quieres traducir a letras anglosajonas: F-E-F-D-E-C-D-D.',
+        'Tres errores activan cierre: se quema copia señuelo y aparece custodio.',
+      ],
+      clues: [
+        'La escalera bajo el piano conduce al archivo donde está el permiso o la copia final.',
+      ],
+      rewards: [
+        { label: 'Acceso mansión', value: 'Completa el track: entrada abierta.' },
+        { label: 'Permiso', value: 'Revela el destino final del registro de propiedad.' },
+      ],
+      complications: [
+        'Si llegan sin desmontar red suficiente, la mansión está poblada por operativos y el permiso puede ser copia falsa.',
+      ],
+      nextLeads: ['Archivo bajo la mansión', 'Custodio de sangre', 'Registro auténtico'],
+    },
+  ] satisfies DossierDiscovery[],
+  dailyOperations: [
+    {
+      roll: '1',
+      title: 'Chequeo rutinario',
+      routine: 'Niños y vagabundos confirman marcas de tiza, palomar y rutas verdes.',
+      signs: ['Una marca azul aparece cerca del grupo.', 'Un niño cambia de acera al verlos mirar.'],
+      counterplay: ['Vigilar una marca: Perception DC 13.', 'Convencer a un informante: Persuasion DC 14.'],
+      consequences: ['Si nadie interviene, la secta sabe dónde duermen o a quién visitan.'],
+    },
+    {
+      roll: '2',
+      title: 'Movimiento de alijo',
+      routine: 'Un recadero mueve parte de un alijo a otro punto tras una campanada.',
+      signs: ['Tiza blanca en una esquina.', 'Bolsa pequeña bajo delantal de panadero o mozo.'],
+      counterplay: ['Seguir sin ser visto: Stealth DC 14.', 'Intercambiar paquete: Sleight of Hand DC 15.'],
+      consequences: ['Si fallan, se pierde un alijo menor y aparece tiza negra.'],
+    },
+    {
+      roll: '3',
+      title: 'Blanqueo en taberna',
+      routine: 'La taberna infla caja y crea una deuda falsa para pagar a un operativo.',
+      signs: ['Clientes de mentira.', 'Recibo sin consumo real.', 'Monedas con olor a especias de carnicería.'],
+      counterplay: ['Investigation DC 15 en caja.', 'Deception DC 16 fingiendo ser cobrador.'],
+      consequences: ['Si no intervienen, un asesino recibe pago esa noche.'],
+    },
+    {
+      roll: '4',
+      title: 'Limpieza de sospechoso',
+      routine: 'La secta amenaza, secuestra o elimina discretamente a alguien que vio demasiado.',
+      signs: ['Tiza roja cerca del objetivo.', 'Paloma con anilla roja.', 'Pedido de "corte limpio".'],
+      counterplay: ['Identificar objetivo: Investigation DC 15.', 'Protegerlo sin revelar plan: Stealth o Persuasion DC 14.'],
+      consequences: ['Si fallan, al día siguiente hay desaparición y pista hacia la carnicería.'],
+    },
+    {
+      roll: '5',
+      title: 'Infiltración social',
+      routine: 'Un colaborador intenta entrar en una rutina de los players o de Boris: iglesia, posada, escolta o suministros.',
+      signs: ['Oferta demasiado conveniente.', 'Ayuda que llega justo a tiempo.', 'Pregunta amable sobre el equipaje.'],
+      counterplay: ['Insight DC 15.', 'Background check con Investigation DC 14.'],
+      consequences: ['Si entra, la secta avanza el rastro del permiso o descubre una protección.'],
+    },
+    {
+      roll: '6',
+      title: 'Orden desde la mansión',
+      routine: 'Un operativo real baja de la mansión para corregir errores de la red periférica.',
+      signs: ['Marcas borradas demasiado rápido.', 'Silencio repentino de informantes.', 'Música lejana o iniciales F-E-F-D.'],
+      counterplay: ['Seguir al operativo: Stealth DC 16.', 'Capturar mensaje: Perception DC 15 + Investigation DC 15.'],
+      consequences: ['Si escapa, acelera el cierre de la base y mueve el permiso hacia el archivo.'],
+    },
+  ] satisfies DossierDailyOperation[],
   cells: [
     {
       name: 'Cuchillos de Medianoche',
