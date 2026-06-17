@@ -2430,6 +2430,10 @@ textarea:focus {
 .lore-page {
   grid-template-columns: 280px minmax(0, 1fr) 360px;
   grid-template-rows: auto minmax(0, 1fr);
+  height: calc(100vh - 44px);
+  max-height: calc(100vh - 44px);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .lore-list,
@@ -2441,6 +2445,12 @@ textarea:focus {
   display: grid;
   align-content: start;
   gap: 10px;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .lore-list-item,
@@ -2606,6 +2616,26 @@ textarea:focus {
     linear-gradient(180deg, rgba(8, 12, 30, 0.82), rgba(5, 8, 18, 0.66));
   backdrop-filter: var(--glass-blur);
   box-shadow: var(--glow-cyan), inset 0 0 22px rgba(182, 134, 255, 0.06);
+}
+
+.battle-view-button {
+  width: 40px;
+  height: auto;
+  min-height: 86px;
+  padding: 8px 5px;
+  gap: 6px;
+  writing-mode: vertical-rl;
+}
+
+.battle-view-button svg {
+  writing-mode: horizontal-tb;
+}
+
+.battle-view-button span {
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .battle-canvas {
@@ -2833,7 +2863,7 @@ textarea:focus {
 }
 
 .area-card > button,
-.asset-card,
+.asset-card > button,
 .container-card,
 .item-card {
   display: grid;
@@ -2854,14 +2884,21 @@ textarea:focus {
 }
 
 .asset-card {
-  grid-template-columns: auto minmax(0, 1fr);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
   align-items: center;
   padding: 10px;
   border: 1px solid var(--line);
 }
 
+.asset-card > button {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
 .asset-card small {
-  grid-column: 2;
+  display: block;
 }
 
 .asset-icon {
@@ -3512,9 +3549,27 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
+  .lore-page {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .lore-list {
+    height: auto;
+    max-height: none;
+  }
+
   .battle-toolbar {
     flex-direction: row;
     overflow-x: auto;
+  }
+
+  .battle-view-button {
+    width: auto;
+    min-width: 82px;
+    min-height: 40px;
+    writing-mode: horizontal-tb;
   }
 
   .battle-side {

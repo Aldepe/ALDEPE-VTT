@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import {
   BrickWall,
+  ClipboardPaste,
   Circle,
   Copy,
   Crosshair,
@@ -45,6 +46,8 @@ import {
   canEditBattleArea,
   canEditMapAsset,
   canEditToken,
+  canToggleBattleAreaLock,
+  canToggleMapAssetLock,
   isDmOnlyVisibility,
 } from '@domain/services/permissions'
 import { sortTurnEntries } from '@domain/services/battlemapGeometry'
@@ -122,6 +125,7 @@ const placementModes: Array<{ id: PlacementMode; label: string }> = [
 ]
 
 type BattlemapMode = 'use' | 'edit'
+type BattlemapViewMode = 'dm' | 'player'
 type PlacementLayer = 'tokens' | 'areas' | 'assets' | 'dm'
 type BattleSidePanel = 'combat' | 'layers' | 'tokens' | 'areas' | 'assets' | 'map'
 
@@ -179,6 +183,29 @@ function updateAreaSize(area: BattleArea, patch: Partial<Pick<BattleArea, 'width
   )
 }
 
+function copiedAssetLabel(label: string): string {
+  const trimmedLabel = label.trim() || 'Asset'
+  return trimmedLabel.toLowerCase().endsWith(' copia') ? trimmedLabel : `${trimmedLabel} copia`
+}
+
+function createAssetPasteCopy(asset: MapAsset, map: BattleMap): MapAsset {
+  const offset = map.gridSize
+  const maxX = Math.max(0, map.width - asset.width)
+  const maxY = Math.max(0, map.height - asset.height)
+  const label = copiedAssetLabel(asset.label)
+
+  return {
+    ...asset,
+    id: createId('asset'),
+    mapId: map.id,
+    name: label,
+    label,
+    locked: false,
+    x: Math.max(0, Math.min(maxX, asset.x + offset)),
+    y: Math.max(0, Math.min(maxY, asset.y + offset)),
+  }
+}
+
 export function BattlemapPage({
   battleAreas,
   campaign,
@@ -211,6 +238,7 @@ export function BattlemapPage({
   const [activeTool, setActiveTool] = useState<BattleTool>('pan')
   const [selectedAssetType, setSelectedAssetType] = useState<MapAssetType>('wall')
   const [battlemapMode, setBattlemapMode] = useState<BattlemapMode>('use')
+  const [battlemapViewMode, setBattlemapViewMode] = useState<BattlemapViewMode>('dm')
   const [sidePanel, setSidePanel] = useState<BattleSidePanel>('combat')
   const [placementLayer, setPlacementLayer] = useState<PlacementLayer>('tokens')
   const [color, setColor] = useState('#22f0c8')
@@ -220,6 +248,7 @@ export function BattlemapPage({
   const [selectedAreaId, setSelectedAreaId] = useState<string | undefined>()
   const [selectedAssetId, setSelectedAssetId] = useState<string | undefined>()
   const [selectedTokenId, setSelectedTokenId] = useState<string | undefined>()
+  const [assetClipboard, setAssetClipboard] = useState<MapAsset | undefined>()
   const [selectedPlayerTokenCharacterId, setSelectedPlayerTokenCharacterId] = useState('')
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number; nonce: number } | undefined>()
   const [newTurnName, setNewTurnName] = useState('')
@@ -247,9 +276,13 @@ export function BattlemapPage({
   const mapDrawings = useMemo(() => drawings.filter((drawing) => drawing.mapId === map?.id), [drawings, map?.id])
   const mapAreas = useMemo(() => battleAreas.filter((area) => area.mapId === map?.id), [battleAreas, map?.id])
   const assets = useMemo(() => mapAssets.filter((asset) => asset.mapId === map?.id), [map?.id, mapAssets])
-  const visibleTokens = ListVisibleMapElementsUseCase(mapTokens, viewerMember)
-  const visibleAreas = ListVisibleMapElementsUseCase(mapAreas, viewerMember)
-  const visibleAssets = ListVisibleMapElementsUseCase(assets, viewerMember)
+  const previewViewerMember = isDm && battlemapViewMode === 'player'
+    ? { ...viewerMember, role: 'player' as const }
+    : viewerMember
+  const isPlayerPreview = isDm && battlemapViewMode === 'player'
+  const visibleTokens = ListVisibleMapElementsUseCase(mapTokens, previewViewerMember)
+  const visibleAreas = ListVisibleMapElementsUseCase(mapAreas, previewViewerMember)
+  const visibleAssets = ListVisibleMapElementsUseCase(assets, previewViewerMember)
   const dmLayerTokens = ListDmMapElementsUseCase(mapTokens, viewerMember)
   const dmLayerAreas = ListDmMapElementsUseCase(mapAreas, viewerMember)
   const dmLayerAssets = ListDmMapElementsUseCase(assets, viewerMember)
@@ -284,6 +317,59 @@ export function BattlemapPage({
     return true
   })
 
+  const copyAsset = useCallback((asset: MapAsset) => {
+    if (!isDm) {
+      return
+    }
+
+    setAssetClipboard(asset)
+    setBattleFeedback(`"${asset.label}" copiado. Usa Ctrl+V o Pegar para colocarlo.`)
+  }, [isDm])
+
+  const pasteCopiedAsset = useCallback(async () => {
+    if (!map || !assetClipboard || !isDm) {
+      return
+    }
+
+    const copy = createAssetPasteCopy(assetClipboard, map)
+    await onSaveMapAsset(copy)
+    setAssetClipboard(copy)
+    setSelectedAssetId(copy.id)
+    setSelectedAreaId(undefined)
+    setSelectedTokenId(undefined)
+    if (isEditingMap) {
+      setSidePanel('assets')
+    }
+    setBattleFeedback(`"${copy.label}" pegado.`)
+  }, [assetClipboard, isDm, isEditingMap, map, onSaveMapAsset])
+
+  useEffect(() => {
+    function handleAssetClipboardShortcut(event: KeyboardEvent) {
+      if (!event.ctrlKey && !event.metaKey) {
+        return
+      }
+
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) {
+        return
+      }
+
+      const key = event.key.toLowerCase()
+      if (key === 'c' && selectedAsset) {
+        event.preventDefault()
+        copyAsset(selectedAsset)
+      }
+
+      if (key === 'v' && assetClipboard) {
+        event.preventDefault()
+        void pasteCopiedAsset()
+      }
+    }
+
+    window.addEventListener('keydown', handleAssetClipboardShortcut)
+    return () => window.removeEventListener('keydown', handleAssetClipboardShortcut)
+  }, [assetClipboard, copyAsset, pasteCopiedAsset, selectedAsset])
+
   async function handleSaveBattlemapChanges() {
     setBattleFeedback('Guardando cambios del mapa...')
     const saved = await onSaveBattlemapChanges()
@@ -305,7 +391,22 @@ export function BattlemapPage({
       return
     }
 
+    setBattlemapViewMode('dm')
     setSidePanel('layers')
+  }
+
+  function changeBattlemapViewMode(mode: BattlemapViewMode) {
+    setBattlemapViewMode(mode)
+
+    if (mode === 'player') {
+      setBattlemapMode('use')
+      setActiveTool('pan')
+      setSidePanel('combat')
+      setVisibility('public')
+      setSelectedAreaId(undefined)
+      setSelectedAssetId(undefined)
+      setSelectedTokenId(undefined)
+    }
   }
 
   async function createMap() {
@@ -560,7 +661,11 @@ export function BattlemapPage({
   }
 
   async function patchAsset(asset: MapAsset, patch: Partial<MapAsset>) {
-    if (!canEditMapAsset(viewerMember, asset)) {
+    const patchKeys = Object.keys(patch)
+    const isLockOnlyPatch = patchKeys.length === 1 && patchKeys[0] === 'locked'
+    const canPatchAsset = isLockOnlyPatch ? canToggleMapAssetLock(viewerMember, asset) : canEditMapAsset(viewerMember, asset)
+
+    if (!canPatchAsset) {
       return
     }
 
@@ -642,6 +747,7 @@ export function BattlemapPage({
     setSelectedAssetId(asset.id)
     setSelectedAreaId(undefined)
     setSelectedTokenId(undefined)
+    setActiveTool('select')
     if (isEditingMap) {
       setSidePanel('assets')
     }
@@ -683,6 +789,9 @@ export function BattlemapPage({
   }
 
   function renderAreaLayerItem(area: BattleArea) {
+    const editable = canEditBattleArea(viewerMember, area)
+    const canToggleLock = canToggleBattleAreaLock(viewerMember, area)
+
     return (
       <article className={clsx('layer-row', selectedAreaId === area.id && 'is-active')} key={area.id}>
         <button onClick={() => selectArea(area)} type="button">
@@ -696,13 +805,16 @@ export function BattlemapPage({
           <button className="icon-button" onClick={() => void centerOnArea(area)} title="Centrar area" type="button">
             <Crosshair size={15} />
           </button>
-          <button className="icon-button" onClick={() => void duplicateArea(area)} title="Duplicar area" type="button">
+          <button className="icon-button" disabled={!editable} onClick={() => void duplicateArea(area)} title="Duplicar area" type="button">
             <Copy size={15} />
           </button>
-          <button className="icon-button" onClick={() => void patchArea(area, { visibility: nextVisibility(area.visibility) })} title="Cambiar visibilidad" type="button">
+          <button className="icon-button" disabled={!canToggleLock} onClick={() => void patchArea(area, { locked: !area.locked })} title={area.locked ? 'Desbloquear area' : 'Bloquear area'} type="button">
+            {area.locked ? <Unlock size={15} /> : <Lock size={15} />}
+          </button>
+          <button className="icon-button" disabled={!editable} onClick={() => void patchArea(area, { visibility: nextVisibility(area.visibility) })} title="Cambiar visibilidad" type="button">
             {isDmOnlyVisibility(area.visibility) ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
-          <button className="icon-button danger" onClick={() => void deleteArea(area)} title="Borrar area" type="button">
+          <button className="icon-button danger" disabled={!editable} onClick={() => void deleteArea(area)} title="Borrar area" type="button">
             <Trash2 size={15} />
           </button>
         </div>
@@ -717,7 +829,7 @@ export function BattlemapPage({
           <span className="asset-icon" style={{ color: asset.color }}>{getMapAssetDefinition(asset.type).icon}</span>
           <span>
             <strong>{asset.label}</strong>
-            <small>{getMapAssetDefinition(asset.type).name} - {visibilityLabel(asset.visibility)}</small>
+            <small>{getMapAssetDefinition(asset.type).name} - {asset.locked ? 'Bloqueado' : 'Editable'} - {visibilityLabel(asset.visibility)}</small>
           </span>
         </button>
         <div className="inline-actions">
@@ -726,6 +838,12 @@ export function BattlemapPage({
             selectAsset(asset)
           }} title="Centrar asset" type="button">
             <Crosshair size={15} />
+          </button>
+          <button className="icon-button" disabled={!isDm} onClick={() => copyAsset(asset)} title="Copiar asset" type="button">
+            <Copy size={15} />
+          </button>
+          <button className="icon-button" disabled={!canToggleMapAssetLock(viewerMember, asset)} onClick={() => void patchAsset(asset, { locked: !asset.locked })} title={asset.locked ? 'Desbloquear asset' : 'Bloquear asset'} type="button">
+            {asset.locked ? <Unlock size={15} /> : <Lock size={15} />}
           </button>
           <button className="icon-button" onClick={() => void patchAsset(asset, { visibility: nextVisibility(asset.visibility) })} title="Cambiar visibilidad" type="button">
             {isDmOnlyVisibility(asset.visibility) ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -757,7 +875,7 @@ export function BattlemapPage({
         <div>
           <p className="eyebrow">Mesa tactica</p>
           <h2 id="battlemap-title">Battlemap</h2>
-          <p>{map.name} - {map.width}x{map.height}px - Grid {map.gridSize}px - Snap: {placementModes.find((mode) => mode.id === placementMode)?.label}</p>
+          <p>{map.name} - {map.width}x{map.height}px - Grid {map.gridSize}px - Snap: {placementModes.find((mode) => mode.id === placementMode)?.label} - Vista: {isPlayerPreview ? 'Player' : 'DM'}</p>
           <span className="battle-feedback-chip" role="status">{battlemapStatusLabel}</span>
         </div>
         <div className="toolbar-line">
@@ -795,6 +913,10 @@ export function BattlemapPage({
                 <button className={battlemapMode === 'use' ? 'is-active' : ''} onClick={() => changeBattlemapMode('use')} type="button">Uso</button>
                 <button className={battlemapMode === 'edit' ? 'is-active' : ''} onClick={() => changeBattlemapMode('edit')} type="button">Edicion</button>
               </div>
+              <div className="segmented battle-mode-tabs" role="tablist" aria-label="Vista del battlemap">
+                <button className={battlemapViewMode === 'dm' ? 'is-active' : ''} onClick={() => changeBattlemapViewMode('dm')} type="button">Vista DM</button>
+                <button className={battlemapViewMode === 'player' ? 'is-active' : ''} onClick={() => changeBattlemapViewMode('player')} type="button">Vista player</button>
+              </div>
               <button className="ghost-button" onClick={createMap} type="button">Nuevo mapa</button>
               {map.isActive ? (
                 <button className="ghost-button" onClick={() => void setMapHidden(map)} type="button">Ocultar a players</button>
@@ -808,6 +930,20 @@ export function BattlemapPage({
 
       <div className={clsx('battle-layout', !isEditingMap && 'battle-layout-use')}>
         <div className="battle-toolbar" aria-label="Herramientas de mapa">
+          {isDm ? (
+            <>
+              <button
+                className={clsx('icon-button battle-view-button', isPlayerPreview && 'is-active')}
+                onClick={() => changeBattlemapViewMode(isPlayerPreview ? 'dm' : 'player')}
+                title={isPlayerPreview ? 'Cambiar a vista DM' : 'Cambiar a vista player'}
+                type="button"
+              >
+                {isPlayerPreview ? <EyeOff size={17} aria-hidden="true" /> : <Eye size={17} aria-hidden="true" />}
+                <span>{isPlayerPreview ? 'Player' : 'DM'}</span>
+              </button>
+              <div className="tool-splitter" />
+            </>
+          ) : null}
           {availableTools.map((tool) => {
             const Icon = tool.icon
             return (
@@ -833,7 +969,7 @@ export function BattlemapPage({
                 <span className="sr-only">Color</span>
                 <input onChange={(event) => setColor(event.target.value)} type="color" value={color} />
               </label>
-              {isDm ? (
+              {isDm && !isPlayerPreview ? (
                 <button className="icon-button" onClick={() => setVisibility(nextVisibility(visibility))} title="Visibilidad" type="button">
                   {visibility === 'public' ? <Eye size={18} aria-hidden="true" /> : <EyeOff size={18} aria-hidden="true" />}
                 </button>
@@ -857,7 +993,7 @@ export function BattlemapPage({
 
         <BattlemapCanvas
           activeTool={activeTool}
-          assetVisibility={isDm ? visibility : 'public'}
+          assetVisibility={isPlayerPreview ? 'public' : isDm ? visibility : 'public'}
           battleAreas={mapAreas}
           color={color}
           drawings={mapDrawings}
@@ -882,6 +1018,14 @@ export function BattlemapPage({
             }
           }}
           onMeasure={setMeasureLabel}
+          onMoveAsset={(asset) => {
+            if (canEditMapAsset(viewerMember, asset)) {
+              void onSaveMapAsset(asset)
+              setSelectedAssetId(asset.id)
+              setSelectedAreaId(undefined)
+              setSelectedTokenId(undefined)
+            }
+          }}
           onMoveToken={(token) => void onSaveToken(MoveOwnPlayerTokenUseCase(token, { x: token.x, y: token.y }, viewerMember))}
           onSelectArea={(areaId) => {
             setSelectedAreaId(areaId)
@@ -889,6 +1033,14 @@ export function BattlemapPage({
             setSelectedTokenId(undefined)
             if (areaId && isEditingMap) {
               setSidePanel('areas')
+            }
+          }}
+          onSelectAsset={(assetId) => {
+            setSelectedAssetId(assetId)
+            setSelectedAreaId(undefined)
+            setSelectedTokenId(undefined)
+            if (assetId && isEditingMap) {
+              setSidePanel('assets')
             }
           }}
           onSelectToken={(tokenId) => {
@@ -902,9 +1054,11 @@ export function BattlemapPage({
           onUpdateBattleArea={(area) => void onSaveBattleArea(UpdatePlayerAreaUseCase(area, {}, viewerMember))}
           placementMode={placementMode}
           selectedAreaId={selectedAreaId}
+          selectedAssetId={selectedAssetId}
           selectedTokenId={selectedTokenId}
           tokens={mapTokens}
           viewerMember={viewerMember}
+          visibilityMember={previewViewerMember}
         />
 
         <aside className={clsx('battle-side scroll-panel', !isEditingMap && 'battle-side-use')}>
@@ -1038,12 +1192,13 @@ export function BattlemapPage({
             <div className="area-list">
               {visibleAreas.map((area) => {
                 const editable = canEditBattleArea(viewerMember, area)
+                const canToggleLock = canToggleBattleAreaLock(viewerMember, area)
                 return (
                   <article className={clsx('area-card', selectedAreaId === area.id && 'is-active')} key={area.id}>
                     <button onClick={() => selectArea(area)} type="button">
                       <span className="area-color" style={{ background: area.color }} />
                       <strong>{area.name || area.type}</strong>
-                      <small>{area.type} - {visibilityLabel(area.visibility)}</small>
+                      <small>{area.type} - {area.locked ? 'Bloqueada' : 'Editable'} - {visibilityLabel(area.visibility)}</small>
                     </button>
                     <div className="inline-actions">
                       <button className="icon-button" onClick={() => void centerOnArea(area)} title="Centrar camara" type="button">
@@ -1052,8 +1207,8 @@ export function BattlemapPage({
                       <button className="icon-button" disabled={!editable} onClick={() => void duplicateArea(area)} title="Duplicar area" type="button">
                         <Copy size={15} />
                       </button>
-                      <button className="icon-button" disabled={!editable} onClick={() => void patchArea(area, { locked: !area.locked })} title="Bloquear" type="button">
-                        {area.locked ? <Lock size={15} /> : <Unlock size={15} />}
+                      <button className="icon-button" disabled={!canToggleLock} onClick={() => void patchArea(area, { locked: !area.locked })} title={area.locked ? 'Desbloquear area' : 'Bloquear area'} type="button">
+                        {area.locked ? <Unlock size={15} /> : <Lock size={15} />}
                       </button>
                       <button className="icon-button" disabled={!isDm} onClick={() => void patchArea(area, { hidden: !area.hidden })} title="Ocultar" type="button">
                         {area.hidden ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -1072,10 +1227,15 @@ export function BattlemapPage({
             <section className="area-inspector">
               <div className="panel-heading">
                 <h3>Inspector de area</h3>
-                <button className="ghost-button" disabled={!canEditBattleArea(viewerMember, selectedArea)} onClick={() => void onSaveBattleArea(RotateBattleAreaUseCase(selectedArea, 15, viewerMember.userId))} type="button">
-                  <RotateCw size={15} />
-                  Rotar
-                </button>
+                <div className="inline-actions">
+                  <button className="icon-button" disabled={!canToggleBattleAreaLock(viewerMember, selectedArea)} onClick={() => void patchArea(selectedArea, { locked: !selectedArea.locked })} title={selectedArea.locked ? 'Desbloquear area' : 'Bloquear area'} type="button">
+                    {selectedArea.locked ? <Unlock size={15} /> : <Lock size={15} />}
+                  </button>
+                  <button className="ghost-button" disabled={!canEditBattleArea(viewerMember, selectedArea)} onClick={() => void onSaveBattleArea(RotateBattleAreaUseCase(selectedArea, 15, viewerMember.userId))} type="button">
+                    <RotateCw size={15} />
+                    Rotar
+                  </button>
+                </div>
               </div>
               <fieldset disabled={!canEditBattleArea(viewerMember, selectedArea)}>
                 <Field label="Nombre">
@@ -1157,10 +1317,16 @@ export function BattlemapPage({
             <div className="panel-heading">
               <h3>Assets tacticos</h3>
               {isDm ? (
-                <button className="ghost-button" onClick={() => setActiveTool(selectedAssetType)} type="button">
-                  <BrickWall size={15} />
-                  Colocar
-                </button>
+                <div className="inline-actions">
+                  <button className="ghost-button" disabled={!assetClipboard} onClick={() => void pasteCopiedAsset()} type="button">
+                    <ClipboardPaste size={15} />
+                    Pegar
+                  </button>
+                  <button className="ghost-button" onClick={() => setActiveTool(selectedAssetType)} type="button">
+                    <BrickWall size={15} />
+                    Colocar
+                  </button>
+                </div>
               ) : null}
             </div>
             {isDm ? (
@@ -1182,11 +1348,26 @@ export function BattlemapPage({
             ) : null}
             <div className="asset-list">
               {visibleAssets.map((asset) => (
-                <button className={clsx('asset-card', selectedAssetId === asset.id && 'is-active')} key={asset.id} onClick={() => selectAsset(asset)} type="button">
-                  <span className="asset-icon" style={{ color: asset.color }}>{getMapAssetDefinition(asset.type).icon}</span>
-                  <strong>{asset.label}</strong>
-                  <small>{getMapAssetDefinition(asset.type).name} - {visibilityLabel(asset.visibility)}</small>
-                </button>
+                <article className={clsx('asset-card', selectedAssetId === asset.id && 'is-active')} key={asset.id}>
+                  <button onClick={() => selectAsset(asset)} title="Seleccionar y mover asset" type="button">
+                    <span className="asset-icon" style={{ color: asset.color }}>{getMapAssetDefinition(asset.type).icon}</span>
+                    <span>
+                      <strong>{asset.label}</strong>
+                      <small>{getMapAssetDefinition(asset.type).name} - {asset.locked ? 'Bloqueado' : 'Editable'} - {visibilityLabel(asset.visibility)}</small>
+                    </span>
+                  </button>
+                  <div className="inline-actions">
+                    <button className="icon-button" disabled={!isDm} onClick={() => copyAsset(asset)} title="Copiar asset" type="button">
+                      <Copy size={15} />
+                    </button>
+                    <button className="icon-button" disabled={!assetClipboard} onClick={() => void pasteCopiedAsset()} title="Pegar asset" type="button">
+                      <ClipboardPaste size={15} />
+                    </button>
+                    <button className="icon-button" disabled={!canToggleMapAssetLock(viewerMember, asset)} onClick={() => void patchAsset(asset, { locked: !asset.locked })} title={asset.locked ? 'Desbloquear asset' : 'Bloquear asset'} type="button">
+                      {asset.locked ? <Unlock size={15} /> : <Lock size={15} />}
+                    </button>
+                  </div>
+                </article>
               ))}
             </div>
           </section>
@@ -1196,9 +1377,20 @@ export function BattlemapPage({
               <div className="panel-heading">
                 <h3>Inspector de asset</h3>
                 {isDm ? (
-                  <button className="icon-button danger" onClick={() => void deleteAsset(selectedAsset)} title="Borrar asset" type="button">
-                    <Trash2 size={15} />
-                  </button>
+                  <div className="inline-actions">
+                    <button className="icon-button" disabled={!isDm} onClick={() => copyAsset(selectedAsset)} title="Copiar asset" type="button">
+                      <Copy size={15} />
+                    </button>
+                    <button className="icon-button" disabled={!assetClipboard} onClick={() => void pasteCopiedAsset()} title="Pegar asset" type="button">
+                      <ClipboardPaste size={15} />
+                    </button>
+                    <button className="icon-button" disabled={!canToggleMapAssetLock(viewerMember, selectedAsset)} onClick={() => void patchAsset(selectedAsset, { locked: !selectedAsset.locked })} title={selectedAsset.locked ? 'Desbloquear asset' : 'Bloquear asset'} type="button">
+                      {selectedAsset.locked ? <Unlock size={15} /> : <Lock size={15} />}
+                    </button>
+                    <button className="icon-button danger" onClick={() => void deleteAsset(selectedAsset)} title="Borrar asset" type="button">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 ) : null}
               </div>
               <fieldset disabled={!canEditMapAsset(viewerMember, selectedAsset)}>

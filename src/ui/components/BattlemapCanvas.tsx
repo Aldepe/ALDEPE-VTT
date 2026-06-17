@@ -15,6 +15,7 @@ import type { CampaignMember, Visibility } from '@domain/entities/common'
 import {
   canCreateDrawing,
   canEditBattleArea,
+  canEditMapAsset,
   canMoveToken,
   canViewBattleArea,
   canViewToken,
@@ -42,14 +43,18 @@ interface BattlemapCanvasProps {
   onAddBattleArea: (area: BattleArea) => void
   onDeleteArea: (areaId: string) => void
   onMeasure: (label: string) => void
+  onMoveAsset: (asset: MapAsset) => void
   onMoveToken: (token: Token) => void
   onSelectArea: (areaId?: string) => void
+  onSelectAsset: (assetId?: string) => void
   onSelectToken: (tokenId?: string) => void
   onUpdateBattleArea: (area: BattleArea) => void
   placementMode: PlacementMode
   selectedAreaId?: string
+  selectedAssetId?: string
   selectedTokenId?: string
   tokens: Token[]
+  visibilityMember?: CampaignMember
   viewerMember: CampaignMember
 }
 
@@ -58,6 +63,7 @@ type Interaction =
   | { kind: 'pan'; origin: Point; viewportOrigin: Point }
   | { kind: 'draw'; start: Point; current: Point }
   | { kind: 'drag-area'; area: BattleArea; offset: Point }
+  | { kind: 'drag-asset'; asset: MapAsset; offset: Point }
   | { kind: 'drag-token'; token: Token; offset: Point }
 
 type TokenImageCacheEntry =
@@ -86,6 +92,33 @@ function colorWithOpacity(color: string, opacity: number): string {
     .toString(16)
     .padStart(2, '0')
   return `#${normalized}${alpha}`
+}
+
+function snapAssetTopLeft(rawTopLeft: Point, asset: MapAsset, gridSize: number, placementMode: PlacementMode): Point {
+  if (placementMode === 'free') {
+    return rawTopLeft
+  }
+
+  const snappedCenter = snapPointByPlacementMode(
+    {
+      x: rawTopLeft.x + asset.width / 2,
+      y: rawTopLeft.y + asset.height / 2,
+    },
+    gridSize,
+    placementMode,
+  )
+
+  return {
+    x: snappedCenter.x - asset.width / 2,
+    y: snappedCenter.y - asset.height / 2,
+  }
+}
+
+function clampAssetToMap(point: Point, asset: MapAsset, map: BattleMap): Point {
+  return {
+    x: clamp(point.x, 0, Math.max(0, map.width - asset.width)),
+    y: clamp(point.y, 0, Math.max(0, map.height - asset.height)),
+  }
 }
 
 function drawGrid(context: CanvasRenderingContext2D, map: BattleMap) {
@@ -216,19 +249,19 @@ function wrapTextLines(context: CanvasRenderingContext2D, text: string, maxWidth
   return lines.length ? lines : ['Texto del mapa']
 }
 
-function drawTextAsset(context: CanvasRenderingContext2D, asset: MapAsset, isPrivate: boolean) {
+function drawTextAsset(context: CanvasRenderingContext2D, asset: MapAsset, isPrivate: boolean, selected: boolean) {
   const padding = clamp(Math.min(asset.width, asset.height) * 0.18, 10, 22)
   const fontSize = clamp(asset.height * 0.28, 14, 34)
   const lineHeight = fontSize * 1.22
   const maxTextWidth = Math.max(24, asset.width - padding * 2)
   const maxLines = Math.max(1, Math.floor(Math.max(1, asset.height - padding * 2) / lineHeight))
 
-  context.lineWidth = 2.5
+  context.lineWidth = selected ? 4 : 2.5
   context.setLineDash(isPrivate ? [10, 6] : [])
-  context.strokeStyle = isPrivate ? '#ff4fa3' : asset.color
+  context.strokeStyle = selected ? '#ffffff' : isPrivate ? '#ff4fa3' : asset.color
   context.fillStyle = isPrivate ? 'rgba(255, 79, 163, 0.13)' : 'rgba(2, 10, 22, 0.72)'
-  context.shadowColor = asset.color
-  context.shadowBlur = 18
+  context.shadowColor = selected ? '#ffffff' : asset.color
+  context.shadowBlur = selected ? 28 : 18
   context.beginPath()
   context.roundRect(asset.x, asset.y, asset.width, asset.height, 10)
   context.fill()
@@ -259,7 +292,7 @@ function drawTextAsset(context: CanvasRenderingContext2D, asset: MapAsset, isPri
   }
 }
 
-function drawAsset(context: CanvasRenderingContext2D, asset: MapAsset) {
+function drawAsset(context: CanvasRenderingContext2D, asset: MapAsset, selected: boolean) {
   const definition = getMapAssetDefinition(asset.type)
   const isPrivate = isDmOnlyVisibility(asset.visibility)
   context.save()
@@ -267,15 +300,15 @@ function drawAsset(context: CanvasRenderingContext2D, asset: MapAsset) {
   context.translate(asset.x + asset.width / 2, asset.y + asset.height / 2)
   context.rotate((asset.rotation * Math.PI) / 180)
   context.translate(-(asset.x + asset.width / 2), -(asset.y + asset.height / 2))
-  context.lineWidth = 3
+  context.lineWidth = selected ? 4.5 : 3
   context.setLineDash(isPrivate ? [10, 6] : [])
-  context.strokeStyle = isPrivate ? '#ff4fa3' : asset.color
+  context.strokeStyle = selected ? '#ffffff' : isPrivate ? '#ff4fa3' : asset.color
   context.fillStyle = colorWithOpacity(asset.color, 0.24)
-  context.shadowColor = asset.color
-  context.shadowBlur = 14
+  context.shadowColor = selected ? '#ffffff' : asset.color
+  context.shadowBlur = selected ? 24 : 14
 
   if (asset.type === 'text-label') {
-    drawTextAsset(context, asset, isPrivate)
+    drawTextAsset(context, asset, isPrivate, selected)
     context.restore()
     return
   }
@@ -425,14 +458,18 @@ export function BattlemapCanvas({
   onAddBattleArea,
   onDeleteArea,
   onMeasure,
+  onMoveAsset,
   onMoveToken,
   onSelectArea,
+  onSelectAsset,
   onSelectToken,
   onUpdateBattleArea,
   placementMode,
   selectedAreaId,
+  selectedAssetId,
   selectedTokenId,
   tokens,
+  visibilityMember,
   viewerMember,
 }: BattlemapCanvasProps) {
   void drawings
@@ -443,19 +480,22 @@ export function BattlemapCanvas({
   const pendingTokenRef = useRef<Token | null>(null)
   const areaFrameRef = useRef<number | undefined>(undefined)
   const pendingAreaRef = useRef<BattleArea | null>(null)
+  const assetFrameRef = useRef<number | undefined>(undefined)
+  const pendingAssetRef = useRef<MapAsset | null>(null)
   const focusedNonceRef = useRef<number | undefined>(undefined)
   const [, setTokenImageVersion] = useState(0)
   const [viewport, setViewport] = useState({ x: 40, y: 40, scale: 0.55 })
   const [interaction, setInteraction] = useState<Interaction>({ kind: 'none' })
 
-  const visibleTokens = useMemo(() => tokens.filter((token) => canViewToken(viewerMember, token)), [tokens, viewerMember])
+  const mapVisibilityMember = visibilityMember ?? viewerMember
+  const visibleTokens = useMemo(() => tokens.filter((token) => canViewToken(mapVisibilityMember, token)), [tokens, mapVisibilityMember])
   const visibleBattleAreas = useMemo(
-    () => battleAreas.filter((area) => canViewBattleArea(viewerMember, area)),
-    [battleAreas, viewerMember],
+    () => battleAreas.filter((area) => canViewBattleArea(mapVisibilityMember, area)),
+    [battleAreas, mapVisibilityMember],
   )
   const visibleAssets = useMemo(
-    () => mapAssets.filter((asset) => canViewVisibility(viewerMember, asset.visibility)),
-    [mapAssets, viewerMember],
+    () => mapAssets.filter((asset) => canViewVisibility(mapVisibilityMember, asset.visibility)),
+    [mapAssets, mapVisibilityMember],
   )
 
   useEffect(() => {
@@ -592,7 +632,7 @@ export function BattlemapCanvas({
 
     drawGrid(context, map)
     visibleBattleAreas.forEach((area) => drawBattleArea(context, area, area.id === selectedAreaId))
-    visibleAssets.forEach((asset) => drawAsset(context, asset))
+    visibleAssets.forEach((asset) => drawAsset(context, asset, asset.id === selectedAssetId))
     visibleTokens.forEach((token) => {
       const imageEntry = token.image.url ? tokenImageCacheRef.current.get(token.image.url) : undefined
       const tokenImage = imageEntry?.status === 'loaded' ? imageEntry.image : undefined
@@ -649,6 +689,23 @@ export function BattlemapCanvas({
     })
   }
 
+  function findAsset(point: Point): MapAsset | undefined {
+    return [...visibleAssets].reverse().find((asset) => {
+      const centerX = asset.x + asset.width / 2
+      const centerY = asset.y + asset.height / 2
+      const angle = -(asset.rotation * Math.PI) / 180
+      const dx = point.x - centerX
+      const dy = point.y - centerY
+      const localX = centerX + dx * Math.cos(angle) - dy * Math.sin(angle)
+      const localY = centerY + dx * Math.sin(angle) + dy * Math.cos(angle)
+
+      return localX >= asset.x
+        && localX <= asset.x + asset.width
+        && localY >= asset.y
+        && localY <= asset.y + asset.height
+    })
+  }
+
   function scheduleTokenMove(token: Token) {
     pendingTokenRef.current = token
     if (moveFrameRef.current) {
@@ -679,6 +736,21 @@ export function BattlemapCanvas({
     })
   }
 
+  function scheduleAssetMove(asset: MapAsset) {
+    pendingAssetRef.current = asset
+    if (assetFrameRef.current) {
+      return
+    }
+
+    assetFrameRef.current = window.requestAnimationFrame(() => {
+      if (pendingAssetRef.current) {
+        onMoveAsset(pendingAssetRef.current)
+      }
+      assetFrameRef.current = undefined
+      pendingAssetRef.current = null
+    })
+  }
+
   function handlePointerDown(event: PointerEvent<HTMLCanvasElement>) {
     const rawPoint = rawMapPointFromEvent(event)
     const point = snapPointByPlacementMode(rawPoint, map.gridSize, placementMode)
@@ -698,9 +770,32 @@ export function BattlemapCanvas({
     }
 
     if (activeTool === 'select') {
+      const token = findToken(rawPoint)
+      if (token) {
+        onSelectToken(token.id)
+        onSelectArea(undefined)
+        onSelectAsset(undefined)
+        if (canMoveToken(viewerMember, token)) {
+          setInteraction({ kind: 'drag-token', token, offset: { x: rawPoint.x - token.x, y: rawPoint.y - token.y } })
+        }
+        return
+      }
+
+      const asset = findAsset(rawPoint)
+      if (asset) {
+        onSelectAsset(asset.id)
+        onSelectArea(undefined)
+        onSelectToken(undefined)
+        if (canEditMapAsset(viewerMember, asset)) {
+          setInteraction({ kind: 'drag-asset', asset, offset: { x: rawPoint.x - asset.x, y: rawPoint.y - asset.y } })
+        }
+        return
+      }
+
       const area = findArea(rawPoint)
       if (area) {
         onSelectArea(area.id)
+        onSelectAsset(undefined)
         onSelectToken(undefined)
         if (canEditBattleArea(viewerMember, area)) {
           setInteraction({ kind: 'drag-area', area, offset: { x: rawPoint.x - area.start.x, y: rawPoint.y - area.start.y } })
@@ -708,12 +803,9 @@ export function BattlemapCanvas({
         return
       }
 
-      const token = findToken(rawPoint)
       onSelectArea(undefined)
-      onSelectToken(token?.id)
-      if (token && canMoveToken(viewerMember, token)) {
-        setInteraction({ kind: 'drag-token', token, offset: { x: rawPoint.x - token.x, y: rawPoint.y - token.y } })
-      }
+      onSelectAsset(undefined)
+      onSelectToken(undefined)
       return
     }
 
@@ -781,6 +873,26 @@ export function BattlemapCanvas({
       setInteraction({ ...interaction, area: nextArea })
       scheduleAreaMove(nextArea)
     }
+
+    if (interaction.kind === 'drag-asset') {
+      const nextTopLeft = clampAssetToMap(
+        snapAssetTopLeft(
+          { x: rawPoint.x - interaction.offset.x, y: rawPoint.y - interaction.offset.y },
+          interaction.asset,
+          map.gridSize,
+          placementMode,
+        ),
+        interaction.asset,
+        map,
+      )
+      const nextAsset = {
+        ...interaction.asset,
+        x: nextTopLeft.x,
+        y: nextTopLeft.y,
+      }
+      setInteraction({ ...interaction, asset: nextAsset })
+      scheduleAssetMove(nextAsset)
+    }
   }
 
   function handlePointerUp() {
@@ -827,6 +939,10 @@ export function BattlemapCanvas({
 
     if (interaction.kind === 'drag-area') {
       onUpdateBattleArea(interaction.area)
+    }
+
+    if (interaction.kind === 'drag-asset') {
+      onMoveAsset(interaction.asset)
     }
 
     setInteraction({ kind: 'none' })

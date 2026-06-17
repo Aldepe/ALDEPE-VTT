@@ -109,12 +109,25 @@ export function canEditBattleArea(member: CampaignMember | undefined, area: Batt
   return isDm(member) || (area.visibility === 'public' && area.createdByUserId === member.userId)
 }
 
+export function canToggleBattleAreaLock(member: CampaignMember | undefined, area: BattleArea): boolean {
+  if (!member) {
+    return false
+  }
+
+  return isDm(member) || (area.visibility === 'public' && area.createdByUserId === member.userId)
+}
+
 export function canViewBattleArea(member: CampaignMember | undefined, area: BattleArea): boolean {
   return !area.hidden && canViewVisibility(member, area.visibility)
 }
 
 export function canEditMapAsset(member: CampaignMember | undefined, asset: MapAsset): boolean {
   return Boolean(member && !asset.locked && isDm(member))
+}
+
+export function canToggleMapAssetLock(member: CampaignMember | undefined, asset: MapAsset): boolean {
+  void asset
+  return isDm(member)
 }
 
 export function canDeleteMap(member: CampaignMember | undefined): boolean {

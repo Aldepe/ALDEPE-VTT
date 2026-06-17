@@ -161,11 +161,14 @@ export class SupabaseCampaignRepository implements CampaignRepository {
         sessionImageHoloEnabled: session.sessionImageHoloEnabled ?? true,
       })),
       quests: (questsResult.data ?? []) as Quest[],
-      loreEntries: ((loreResult.data ?? []) as Array<LoreEntry & { lore_links?: { target_id: ID }[] }>).map((entry) => ({
-        ...entry,
-        linkedEntryIds: entry.lore_links?.map((link) => link.target_id) ?? entry.linkedEntryIds ?? [],
-        visibleToPlayerIds: entry.visibleToPlayerIds ?? [],
-      })),
+      loreEntries: ((loreResult.data ?? []) as Array<LoreEntry & { lore_links?: { target_id: ID }[] }>).map((entry) => {
+        const { lore_links, ...loreEntry } = entry
+        return {
+          ...loreEntry,
+          linkedEntryIds: lore_links?.map((link) => link.target_id) ?? loreEntry.linkedEntryIds ?? [],
+          visibleToPlayerIds: loreEntry.visibleToPlayerIds ?? [],
+        }
+      }),
       maps,
       tokens: ((tokenRows.data ?? []) as Token[]).map(NormalizeTokenUseCase),
       drawings: (drawingRows.data ?? []) as Drawing[],
@@ -241,7 +244,8 @@ export class SupabaseCampaignRepository implements CampaignRepository {
   }
 
   async saveLoreEntry(entry: LoreEntry): Promise<LoreEntry> {
-    const { linkedEntryIds, ...row } = entry
+    const { linkedEntryIds, lore_links, ...row } = entry as LoreEntry & { lore_links?: { target_id: ID }[] }
+    void lore_links
     const saved = await this.upsert<LoreEntry>('lore_entries', row)
     await this.client.from('lore_links').delete().eq('source_id', entry.id)
     if (linkedEntryIds.length) {

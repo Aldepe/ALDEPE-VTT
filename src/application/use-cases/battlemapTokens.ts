@@ -9,6 +9,7 @@ import {
   canMoveToken,
   canSetOwnInitiative,
   canSetTokenVisibility,
+  canToggleBattleAreaLock,
   canViewBattleArea,
   canViewToken,
   canViewVisibility,
@@ -223,7 +224,14 @@ export function CreatePlayerAreaUseCase(area: BattleArea, member: CampaignMember
 }
 
 export function UpdatePlayerAreaUseCase(area: BattleArea, patch: Partial<BattleArea>, member: CampaignMember): BattleArea {
-  if (!canEditBattleArea(member, area)) {
+  const patchKeys = Object.keys(patch)
+  const isLockOnlyPatch = patchKeys.length === 1 && patchKeys[0] === 'locked'
+
+  if (isLockOnlyPatch && !canToggleBattleAreaLock(member, area)) {
+    throw new Error('No puedes bloquear o desbloquear esta area.')
+  }
+
+  if (!isLockOnlyPatch && !canEditBattleArea(member, area)) {
     throw new Error('No puedes editar esta area.')
   }
 
