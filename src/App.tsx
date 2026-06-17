@@ -62,6 +62,56 @@ interface LoadWorkspaceOptions {
   silent?: boolean
 }
 
+interface PendingBattlemapChanges {
+  maps: Record<string, BattleMap>
+  deletedMapIds: string[]
+  tokens: Record<string, Token>
+  deletedTokenIds: string[]
+  battleAreas: Record<string, BattleArea>
+  deletedBattleAreaIds: string[]
+  mapAssets: Record<string, MapAsset>
+  deletedMapAssetIds: string[]
+  turnOrders: Record<string, TurnOrder>
+}
+
+function createEmptyBattlemapChanges(): PendingBattlemapChanges {
+  return {
+    maps: {},
+    deletedMapIds: [],
+    tokens: {},
+    deletedTokenIds: [],
+    battleAreas: {},
+    deletedBattleAreaIds: [],
+    mapAssets: {},
+    deletedMapAssetIds: [],
+    turnOrders: {},
+  }
+}
+
+function withoutRecordKey<T>(items: Record<string, T>, id: string): Record<string, T> {
+  const nextItems = { ...items }
+  delete nextItems[id]
+  return nextItems
+}
+
+function addUniqueId(ids: string[], id: string): string[] {
+  return ids.includes(id) ? ids : [...ids, id]
+}
+
+function hasBattlemapChanges(changes: PendingBattlemapChanges): boolean {
+  return Boolean(
+    Object.keys(changes.maps).length ||
+    changes.deletedMapIds.length ||
+    Object.keys(changes.tokens).length ||
+    changes.deletedTokenIds.length ||
+    Object.keys(changes.battleAreas).length ||
+    changes.deletedBattleAreaIds.length ||
+    Object.keys(changes.mapAssets).length ||
+    changes.deletedMapAssetIds.length ||
+    Object.keys(changes.turnOrders).length,
+  )
+}
+
 export default function App() {
   const repositories = useMemo(() => createAppRepositories(), [])
   const branding = useMemo(() => LoadBrandingAssetsUseCase(repositories.branding), [repositories.branding])
@@ -73,6 +123,7 @@ export default function App() {
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [pendingBattlemapChanges, setPendingBattlemapChanges] = useState<PendingBattlemapChanges>(() => createEmptyBattlemapChanges())
 
   const viewerMember = getVisibleMember(workspace, session)
   const visibleCharacters = workspace?.characters.filter((character) => canViewCharacter(viewerMember, character)) ?? []
@@ -81,7 +132,7 @@ export default function App() {
     visibleCharacters.find((character) => character.id === viewerMember?.characterId) ??
     visibleCharacters.find((character) => character.ownerUserId === viewerMember?.userId) ??
     visibleCharacters[0]
-  const campaignId = workspace?.campaign.id
+  const hasPendingBattlemapChanges = hasBattlemapChanges(pendingBattlemapChanges)
 
   useEffect(() => {
     document.body.style.setProperty('--app-background-layer', `url("${branding.backgroundPath}") center / cover fixed`)
@@ -162,25 +213,6 @@ export default function App() {
     }
   }, [repositories.audio])
 
-  useEffect(() => {
-    if (!campaignId || !session) {
-      return undefined
-    }
-
-    let reloadTimer: number | undefined
-    const unsubscribe = repositories.realtime.subscribeToCampaign(campaignId, () => {
-      window.clearTimeout(reloadTimer)
-      reloadTimer = window.setTimeout(() => {
-        void loadWorkspace(session, { silent: true })
-      }, 750)
-    })
-
-    return () => {
-      window.clearTimeout(reloadTimer)
-      unsubscribe()
-    }
-  }, [campaignId, loadWorkspace, repositories.realtime, session])
-
   async function handleAuth(credentials: AuthCredentials, mode: 'sign-in' | 'sign-up') {
     setLoadStatus('loading')
     setError(null)
@@ -200,6 +232,7 @@ export default function App() {
     await repositories.auth.signOut()
     setSession(null)
     setWorkspace(null)
+    setPendingBattlemapChanges(createEmptyBattlemapChanges())
     setSelectedCharacterId(undefined)
     setActiveTab('character')
   }
@@ -362,42 +395,74 @@ export default function App() {
 
   async function saveMap(map: BattleMap) {
     setWorkspace((current) => (current ? withMap(current, map) : current))
-    await persist(() => repositories.campaign.saveMap(map))
+    setPendingBattlemapChanges((current) => ({
+      ...current,
+      maps: { ...current.maps, [map.id]: map },
+      deletedMapIds: current.deletedMapIds.filter((mapId) => mapId !== map.id),
+    }))
   }
 
   async function deleteMap(mapId: string) {
     setWorkspace((current) => (current ? DeleteMapUseCase(current, mapId) : current))
-    await persist(() => repositories.campaign.deleteMap(mapId))
+    setPendingBattlemapChanges((current) => ({
+      ...current,
+      maps: withoutRecordKey(current.maps, mapId),
+      deletedMapIds: addUniqueId(current.deletedMapIds, mapId),
+    }))
   }
 
   async function saveToken(token: Token) {
     setWorkspace((current) => (current ? withToken(current, token) : current))
-    await persist(() => repositories.campaign.saveToken(token))
+    setPendingBattlemapChanges((current) => ({
+      ...current,
+      tokens: { ...current.tokens, [token.id]: token },
+      deletedTokenIds: current.deletedTokenIds.filter((tokenId) => tokenId !== token.id),
+    }))
   }
 
   async function deleteToken(tokenId: string) {
     setWorkspace((current) => (current ? withoutToken(current, tokenId) : current))
-    await persist(() => repositories.campaign.deleteToken(tokenId))
+    setPendingBattlemapChanges((current) => ({
+      ...current,
+      tokens: withoutRecordKey(current.tokens, tokenId),
+      deletedTokenIds: addUniqueId(current.deletedTokenIds, tokenId),
+    }))
   }
 
   async function saveBattleArea(area: BattleArea) {
     setWorkspace((current) => (current ? withBattleArea(current, area) : current))
-    await persist(() => repositories.campaign.saveBattleArea(area))
+    setPendingBattlemapChanges((current) => ({
+      ...current,
+      battleAreas: { ...current.battleAreas, [area.id]: area },
+      deletedBattleAreaIds: current.deletedBattleAreaIds.filter((areaId) => areaId !== area.id),
+    }))
   }
 
   async function deleteBattleArea(areaId: string) {
     setWorkspace((current) => (current ? withoutBattleArea(current, areaId) : current))
-    await persist(() => repositories.campaign.deleteBattleArea(areaId))
+    setPendingBattlemapChanges((current) => ({
+      ...current,
+      battleAreas: withoutRecordKey(current.battleAreas, areaId),
+      deletedBattleAreaIds: addUniqueId(current.deletedBattleAreaIds, areaId),
+    }))
   }
 
   async function saveMapAsset(asset: MapAsset) {
     setWorkspace((current) => (current ? withMapAsset(current, asset) : current))
-    await persist(() => repositories.campaign.saveMapAsset(asset))
+    setPendingBattlemapChanges((current) => ({
+      ...current,
+      mapAssets: { ...current.mapAssets, [asset.id]: asset },
+      deletedMapAssetIds: current.deletedMapAssetIds.filter((assetId) => assetId !== asset.id),
+    }))
   }
 
   async function deleteMapAsset(assetId: string) {
     setWorkspace((current) => (current ? withoutMapAsset(current, assetId) : current))
-    await persist(() => repositories.campaign.deleteMapAsset(assetId))
+    setPendingBattlemapChanges((current) => ({
+      ...current,
+      mapAssets: withoutRecordKey(current.mapAssets, assetId),
+      deletedMapAssetIds: addUniqueId(current.deletedMapAssetIds, assetId),
+    }))
   }
 
   async function saveNote(note: CampaignNote) {
@@ -432,7 +497,88 @@ export default function App() {
 
   async function saveTurnOrder(turnOrder: TurnOrder) {
     setWorkspace((current) => (current ? withTurnOrder(current, turnOrder) : current))
-    await persist(() => repositories.campaign.saveTurnOrder(turnOrder))
+    setPendingBattlemapChanges((current) => ({
+      ...current,
+      turnOrders: { ...current.turnOrders, [turnOrder.id]: turnOrder },
+    }))
+  }
+
+  async function savePendingBattlemap() {
+    if (!hasPendingBattlemapChanges) {
+      return true
+    }
+
+    const pending = pendingBattlemapChanges
+    const deletedMapIds = new Set(pending.deletedMapIds)
+    const deletedTokenIds = new Set(pending.deletedTokenIds)
+    const deletedBattleAreaIds = new Set(pending.deletedBattleAreaIds)
+    const deletedMapAssetIds = new Set(pending.deletedMapAssetIds)
+
+    const saved = await persist(async () => {
+      for (const map of Object.values(pending.maps).filter((map) => !deletedMapIds.has(map.id))) {
+        await repositories.campaign.saveMap(map)
+      }
+
+      for (const tokenId of pending.deletedTokenIds) {
+        await repositories.campaign.deleteToken(tokenId)
+      }
+
+      for (const areaId of pending.deletedBattleAreaIds) {
+        await repositories.campaign.deleteBattleArea(areaId)
+      }
+
+      for (const assetId of pending.deletedMapAssetIds) {
+        await repositories.campaign.deleteMapAsset(assetId)
+      }
+
+      for (const token of Object.values(pending.tokens).filter(
+        (token) => !deletedTokenIds.has(token.id) && !deletedMapIds.has(token.mapId),
+      )) {
+        await repositories.campaign.saveToken(token)
+      }
+
+      for (const area of Object.values(pending.battleAreas).filter(
+        (area) => !deletedBattleAreaIds.has(area.id) && !deletedMapIds.has(area.mapId),
+      )) {
+        await repositories.campaign.saveBattleArea(area)
+      }
+
+      for (const asset of Object.values(pending.mapAssets).filter(
+        (asset) => !deletedMapAssetIds.has(asset.id) && !deletedMapIds.has(asset.mapId),
+      )) {
+        await repositories.campaign.saveMapAsset(asset)
+      }
+
+      for (const turnOrder of Object.values(pending.turnOrders).filter((turnOrder) => !deletedMapIds.has(turnOrder.mapId))) {
+        await repositories.campaign.saveTurnOrder(turnOrder)
+      }
+
+      for (const mapId of pending.deletedMapIds) {
+        await repositories.campaign.deleteMap(mapId)
+      }
+
+      return true
+    })
+
+    if (saved) {
+      setPendingBattlemapChanges(createEmptyBattlemapChanges())
+    }
+
+    return saved === true
+  }
+
+  async function reloadWorkspaceFromRemote() {
+    if (!session) {
+      return false
+    }
+
+    if (hasPendingBattlemapChanges && !window.confirm('Hay cambios locales del mapa sin guardar. Recargar descartara esos cambios.')) {
+      return false
+    }
+
+    setPendingBattlemapChanges(createEmptyBattlemapChanges())
+    await loadWorkspace(session)
+    return true
   }
 
   async function toggleSound() {
@@ -539,15 +685,19 @@ export default function App() {
           isDm={isDm(viewerMember)}
           mapAssets={workspace.mapAssets}
           maps={workspace.maps}
+          hasPendingBattlemapChanges={hasPendingBattlemapChanges}
           onDeleteBattleArea={deleteBattleArea}
           onDeleteMap={deleteMap}
           onDeleteMapAsset={deleteMapAsset}
           onDeleteToken={deleteToken}
+          onReloadWorkspace={reloadWorkspaceFromRemote}
           onSaveBattleArea={saveBattleArea}
+          onSaveBattlemapChanges={savePendingBattlemap}
           onSaveMap={saveMap}
           onSaveMapAsset={saveMapAsset}
           onSaveToken={saveToken}
           onSaveTurnOrder={saveTurnOrder}
+          saveStatus={saveStatus}
           selectedCharacter={selectedCharacter}
           tokens={workspace.tokens}
           turnOrders={workspace.turnOrders}

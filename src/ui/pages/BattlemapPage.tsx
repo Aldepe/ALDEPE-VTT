@@ -14,8 +14,10 @@ import {
   Lock,
   Move,
   MousePointer2,
+  RefreshCw,
   RotateCw,
   Ruler,
+  Save,
   Square,
   Swords,
   Trash2,
@@ -36,7 +38,7 @@ import type {
   TurnEntry,
   TurnOrder,
 } from '@domain/entities/battlemap'
-import type { Campaign, CampaignMember, Visibility } from '@domain/entities/common'
+import type { Campaign, CampaignMember, SaveStatus, Visibility } from '@domain/entities/common'
 import type { Character } from '@domain/entities/character'
 import {
   canDeleteMap,
@@ -80,6 +82,7 @@ interface BattlemapPageProps {
   campaign: Campaign
   characters: Character[]
   drawings: Drawing[]
+  hasPendingBattlemapChanges: boolean
   isDm: boolean
   mapAssets: MapAsset[]
   maps: BattleMap[]
@@ -88,10 +91,13 @@ interface BattlemapPageProps {
   onDeleteMapAsset: (assetId: string) => Promise<void>
   onDeleteToken: (tokenId: string) => Promise<void>
   onSaveBattleArea: (area: BattleArea) => Promise<void>
+  onSaveBattlemapChanges: () => Promise<boolean>
   onSaveMap: (map: BattleMap) => Promise<void>
   onSaveMapAsset: (asset: MapAsset) => Promise<void>
   onSaveToken: (token: Token) => Promise<void>
   onSaveTurnOrder: (turnOrder: TurnOrder) => Promise<void>
+  onReloadWorkspace: () => Promise<boolean>
+  saveStatus: SaveStatus
   selectedCharacter?: Character
   tokens: Token[]
   turnOrders: TurnOrder[]
@@ -178,6 +184,7 @@ export function BattlemapPage({
   campaign,
   characters,
   drawings,
+  hasPendingBattlemapChanges,
   isDm,
   mapAssets,
   maps,
@@ -186,10 +193,13 @@ export function BattlemapPage({
   onDeleteMapAsset,
   onDeleteToken,
   onSaveBattleArea,
+  onSaveBattlemapChanges,
   onSaveMap,
   onSaveMapAsset,
   onSaveToken,
   onSaveTurnOrder,
+  onReloadWorkspace,
+  saveStatus,
   selectedCharacter,
   tokens,
   turnOrders,
@@ -216,6 +226,9 @@ export function BattlemapPage({
   const [newTurnInitiative, setNewTurnInitiative] = useState(10)
   const [initiativeRoll, setInitiativeRoll] = useState(10)
   const [battleFeedback, setBattleFeedback] = useState('Battlemap listo.')
+  const battlemapStatusLabel = hasPendingBattlemapChanges
+    ? `${battleFeedback} Cambios locales sin guardar.`
+    : battleFeedback
 
   const mapTokens = useMemo(
     () => tokens
@@ -270,6 +283,18 @@ export function BattlemapPage({
 
     return true
   })
+
+  async function handleSaveBattlemapChanges() {
+    setBattleFeedback('Guardando cambios del mapa...')
+    const saved = await onSaveBattlemapChanges()
+    setBattleFeedback(saved ? 'Cambios del mapa guardados.' : 'No se pudo guardar el mapa.')
+  }
+
+  async function handleReloadWorkspace() {
+    setBattleFeedback('Recargando mapa desde Supabase...')
+    const reloaded = await onReloadWorkspace()
+    setBattleFeedback(reloaded ? 'Mapa recargado desde Supabase.' : 'Recarga cancelada.')
+  }
 
   function changeBattlemapMode(mode: BattlemapMode) {
     setBattlemapMode(mode)
@@ -733,7 +758,7 @@ export function BattlemapPage({
           <p className="eyebrow">Mesa tactica</p>
           <h2 id="battlemap-title">Battlemap</h2>
           <p>{map.name} - {map.width}x{map.height}px - Grid {map.gridSize}px - Snap: {placementModes.find((mode) => mode.id === placementMode)?.label}</p>
-          <span className="battle-feedback-chip" role="status">{battleFeedback}</span>
+          <span className="battle-feedback-chip" role="status">{battlemapStatusLabel}</span>
         </div>
         <div className="toolbar-line">
           <label className="field inline-field">
@@ -746,6 +771,24 @@ export function BattlemapPage({
               ))}
             </SelectInput>
           </label>
+          <button
+            className="primary-button"
+            disabled={!hasPendingBattlemapChanges || saveStatus === 'saving'}
+            onClick={() => void handleSaveBattlemapChanges()}
+            type="button"
+          >
+            <Save size={16} aria-hidden="true" />
+            Guardar mapa
+          </button>
+          <button
+            className="ghost-button"
+            disabled={saveStatus === 'saving'}
+            onClick={() => void handleReloadWorkspace()}
+            type="button"
+          >
+            <RefreshCw size={16} aria-hidden="true" />
+            Recargar
+          </button>
           {isDm ? (
             <>
               <div className="segmented battle-mode-tabs" role="tablist" aria-label="Modo del battlemap">
