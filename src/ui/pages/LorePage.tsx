@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-import { BookMarked, ImagePlus, Link2, Search, Trash2, Users } from 'lucide-react'
+import { BookMarked, BookOpen, EyeOff, ImagePlus, Link2, Search, Sparkles, Trash2, Users } from 'lucide-react'
 import type { CampaignMember } from '@domain/entities/common'
 import type { LoreEntry, LoreType } from '@domain/entities/lore'
 import { canViewLore } from '@domain/services/permissions'
 import { createBlankLoreEntry } from '@application/use-cases/workspaceFactories'
-import { loreTypeLabels } from '@shared/constants/lore'
+import { loreCompactFieldNames, loreFieldDisplayOrder, loreLongFieldNames, loreTypeLabels } from '@shared/constants/lore'
 import { fileToDataUrl } from '@shared/utils/fileToDataUrl'
 import { Field, SelectInput, TextArea, TextInput } from '@ui/components/FormControls'
 import { EmptyState } from '@ui/components/EmptyState'
@@ -26,60 +26,12 @@ function publicFieldLabel(field: string): string {
   return field.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase())
 }
 
-const compactPublicFields = new Set([
-  'Número de miembros',
-  'Alignment',
-  'Liderazgo',
-  'Base',
-  'Alcance',
-  'Recursos',
-  'Aliados',
-  'Enemigos',
-  'Estado actual',
-  'Señales visibles',
-  'Rol en campaña',
-  'Facción',
-  'Ubicación',
-  'Estado',
-  'Relación con players',
-  'Pistas',
-])
-
-const publicFieldOrder = [
-  'Ideología',
-  'Descripción',
-  'Historia',
-  'Motivaciones',
-  'Rol en campaña',
-  'Facción',
-  'Ubicación',
-  'Número de miembros',
-  'Alignment',
-  'Liderazgo',
-  'Base',
-  'Alcance',
-  'Métodos',
-  'Recursos',
-  'Aliados',
-  'Enemigos',
-  'Estado actual',
-  'Señales visibles',
-  'Estado',
-  'Relación con players',
-  'Pistas',
-  'Origen',
-  'Claves',
-  'Encuentros',
-  'Conexiones',
-  'Significado',
-  'Consecuencias',
-  'Uso en mesa',
-]
-
-const publicFieldOrderIndex = new Map(publicFieldOrder.map((field, index) => [field, index]))
+const compactPublicFields = new Set(loreCompactFieldNames)
+const longPublicFields = new Set(loreLongFieldNames)
+const publicFieldOrderIndex = new Map(loreFieldDisplayOrder.map((field, index) => [field, index]))
 
 function isCompactPublicField(field: string, value: string): boolean {
-  return compactPublicFields.has(field) || value.length <= 150
+  return compactPublicFields.has(field) || (!longPublicFields.has(field) && value.length <= 150)
 }
 
 function getOrderedPublicFields(fields: Record<string, string>): [string, string][] {
@@ -93,6 +45,34 @@ function getOrderedPublicFields(fields: Record<string, string>): [string, string
 
     return publicFieldLabel(leftField).localeCompare(publicFieldLabel(rightField), 'es')
   })
+}
+
+function fieldId(field: string): string {
+  return `lore-field-${field
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')}`
+}
+
+function splitParagraphs(value: string): string[] {
+  return value
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+}
+
+function getEntrySummary(entry: LoreEntry): string {
+  const summarySource =
+    entry.publicFields['Descripción'] ??
+    entry.publicFields.descripcion ??
+    entry.publicFields.Historia ??
+    entry.publicFields.historia ??
+    Object.values(entry.publicFields).find((value) => value.trim().length > 0) ??
+    ''
+
+  return splitParagraphs(summarySource)[0] ?? 'Entrada pendiente de desarrollar.'
 }
 
 export function LorePage({ campaignId, entries, isDm, members, onDelete, onSave, viewerMember }: LorePageProps) {
@@ -126,6 +106,7 @@ export function LorePage({ campaignId, entries, isDm, members, onDelete, onSave,
   const draftPublicFields = getOrderedPublicFields(draft.publicFields)
   const compactDraftFields = draftPublicFields.filter(([field, value]) => isCompactPublicField(field, value))
   const longDraftFields = draftPublicFields.filter(([field, value]) => !isCompactPublicField(field, value))
+  const detailSummary = detailEntry ? getEntrySummary(detailEntry) : ''
 
   function startNewEntry(type: LoreType) {
     const nextEntry = createBlankLoreEntry(campaignId, type)
@@ -241,9 +222,15 @@ export function LorePage({ campaignId, entries, isDm, members, onDelete, onSave,
       <aside className="lore-list scroll-panel" aria-label="Entradas de lore">
         {visibleEntries.length ? (
           visibleEntries.map((entry) => (
-            <button className="lore-list-item" key={entry.id} onClick={() => selectEntry(entry)} type="button">
+            <button
+              className={detailEntry?.id === entry.id ? 'lore-list-item is-active' : 'lore-list-item'}
+              key={entry.id}
+              onClick={() => selectEntry(entry)}
+              type="button"
+            >
               <span>{loreTypeLabels[entry.type]}</span>
               <strong>{entry.name || 'Entrada sin nombre'}</strong>
+              <em>{getEntrySummary(entry)}</em>
               {!entry.isVisibleToPlayers ? <small>Oculta</small> : entry.visibleToPlayerIds?.length ? <small>Visibilidad parcial</small> : null}
             </button>
           ))
@@ -255,48 +242,101 @@ export function LorePage({ campaignId, entries, isDm, members, onDelete, onSave,
       <article className="lore-detail scroll-panel">
         {detailEntry ? (
           <>
-            <div className="detail-hero">
-              {detailEntry.image.url ? (
-                <img alt={detailEntry.image.alt || detailEntry.name} src={detailEntry.image.url} />
-              ) : (
-                <BookMarked size={44} aria-hidden="true" />
-              )}
-              <div>
-                <p className="eyebrow">{loreTypeLabels[detailEntry.type]}</p>
-                <h3>{detailEntry.name || 'Entrada sin nombre'}</h3>
+            <header className="detail-hero lore-article-hero">
+              <div className="lore-hero-media">
+                {detailEntry.image.url ? (
+                  <img alt={detailEntry.image.alt || detailEntry.name} src={detailEntry.image.url} />
+                ) : (
+                  <div className="lore-hero-placeholder" aria-hidden="true">
+                    <BookMarked size={42} />
+                  </div>
+                )}
               </div>
-            </div>
-            <div className="detail-fields">
+              <div className="lore-hero-copy">
+                <div className="lore-article-kicker">
+                  <span className="lore-type-pill">{loreTypeLabels[detailEntry.type]}</span>
+                  {!detailEntry.isVisibleToPlayers ? (
+                    <span className="lore-secret-pill">
+                      <EyeOff size={14} aria-hidden="true" />
+                      Oculta
+                    </span>
+                  ) : detailEntry.visibleToPlayerIds?.length ? (
+                    <span className="lore-secret-pill">Visibilidad parcial</span>
+                  ) : null}
+                </div>
+                <h3>{detailEntry.name || 'Entrada sin nombre'}</h3>
+                <p className="lore-article-summary">{detailSummary}</p>
+                <div className="lore-article-meta" aria-label="Resumen de entrada">
+                  <span>
+                    <BookOpen size={14} aria-hidden="true" />
+                    {longDetailFields.length} secciones
+                  </span>
+                  <span>
+                    <Sparkles size={14} aria-hidden="true" />
+                    {compactDetailFields.length} datos rápidos
+                  </span>
+                  <span>
+                    <Link2 size={14} aria-hidden="true" />
+                    {linkedEntries?.length ?? 0} vínculos
+                  </span>
+                </div>
+              </div>
+            </header>
+            <div className="detail-fields lore-article-body">
               {compactDetailFields.length ? (
-                <section className="detail-field-matrix" aria-label="Campos rápidos">
+                <section className="wiki-card">
+                  <div className="wiki-section-heading">
+                    <span>Ficha rápida</span>
+                    <small>{loreTypeLabels[detailEntry.type]}</small>
+                  </div>
+                  <div className="detail-field-matrix" aria-label="Campos rápidos">
                   {compactDetailFields.map(([field, value]) => (
                     <div className="matrix-field" key={field}>
                       <span>{publicFieldLabel(field)}</span>
                       <strong>{value || 'Sin dato.'}</strong>
                     </div>
                   ))}
+                  </div>
                 </section>
               ) : null}
+              {longDetailFields.length ? (
+                <nav className="lore-section-index" aria-label="Índice del artículo">
+                  {longDetailFields.map(([field]) => (
+                    <a href={`#${fieldId(field)}`} key={field}>
+                      {publicFieldLabel(field)}
+                    </a>
+                  ))}
+                  {isDm && detailEntry.secret ? <a href="#lore-field-secret">Secret DM</a> : null}
+                  {linkedEntries?.length ? <a href="#lore-field-links">Vínculos</a> : null}
+                </nav>
+              ) : null}
               {longDetailFields.map(([field, value]) => (
-                <section key={field}>
+                <section className="wiki-card lore-article-section" id={fieldId(field)} key={field}>
                   <h4>{publicFieldLabel(field)}</h4>
-                  <p>{value || 'Sin contenido publico.'}</p>
+                  {splitParagraphs(value || 'Sin contenido público.').map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
                 </section>
               ))}
               {isDm && detailEntry.secret ? (
-                <section className="secret-box">
-                  <h4>Secret</h4>
-                  <p>{detailEntry.secret}</p>
+                <section className="secret-box wiki-card lore-article-section" id="lore-field-secret">
+                  <h4>Secret DM</h4>
+                  {splitParagraphs(detailEntry.secret).map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
                 </section>
               ) : null}
               {linkedEntries?.length ? (
-                <section>
-                  <h4>Vinculos</h4>
-                  <div className="link-list">
+                <section className="wiki-card lore-article-section" id="lore-field-links">
+                  <h4>Vínculos</h4>
+                  <div className="link-list lore-link-grid">
                     {linkedEntries.map((entry) => (
                       <button className="ghost-button" key={entry.id} onClick={() => selectEntry(entry)} type="button">
                         <Link2 size={15} aria-hidden="true" />
-                        {entry.name}
+                        <span>
+                          <strong>{entry.name}</strong>
+                          <small>{loreTypeLabels[entry.type]}</small>
+                        </span>
                       </button>
                     ))}
                   </div>

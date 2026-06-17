@@ -63,12 +63,90 @@ function organizationPublicFields(fields) {
 
 function zonePublicFields(fields) {
   return {
-    Descripción: fields.descripcion,
-    Historia: fields.historia,
-    Claves: fields.claves,
-    Encuentros: fields.encuentros,
-    Conexiones: fields.conexiones,
-    'Uso en mesa': fields.usoEnMesa,
+    Descripción: fields.descripcion ?? 'Localización pendiente de desarrollar.',
+    Historia: fields.historia ?? 'Historia local pendiente de concretar.',
+    'Tipo de zona': fields.tipoZona ?? 'Localización',
+    Ubicación: fields.ubicacion ?? 'Phandalin y alrededores',
+    Control: fields.control ?? 'Disputado',
+    Amenaza: fields.amenaza ?? 'Variable',
+    Acceso: fields.acceso ?? 'Por descubrir',
+    Claves: fields.claves ?? 'Sin claves destacadas.',
+    Encuentros: fields.encuentros ?? 'Sin encuentros definidos.',
+    Conexiones: fields.conexiones ?? 'Sin conexiones confirmadas.',
+    Pistas: fields.pistas ?? 'Sin pistas directas.',
+    'Uso en mesa': fields.usoEnMesa ?? 'Usar como nodo de exploración y pistas.',
+  }
+}
+
+function artifactPublicFields(fields) {
+  return {
+    Descripción: fields.descripcion ?? 'Artefacto pendiente de desarrollar.',
+    Historia: fields.historia ?? 'Historia pendiente de concretar.',
+    Origen: fields.origen ?? 'Origen no confirmado.',
+    Tipo: fields.tipo ?? 'Artefacto',
+    Estado: fields.estado ?? 'Por descubrir',
+    'Portador actual': fields.portadorActual ?? 'Desconocido',
+    'Valor narrativo': fields.valorNarrativo ?? 'Pieza de investigación o recompensa.',
+    Conexiones: fields.conexiones ?? 'Sin conexiones confirmadas.',
+    Pistas: fields.pistas ?? 'Sin pistas directas.',
+    'Uso en mesa': fields.usoEnMesa ?? 'Usar como pista, recompensa o presión de facción.',
+  }
+}
+
+function creaturePublicFields(fields) {
+  return {
+    Descripción: fields.descripcion ?? 'Criatura pendiente de desarrollar.',
+    Historia: fields.historia ?? 'Historia no confirmada.',
+    Tipo: fields.tipo ?? 'Criatura',
+    Facción: fields.faccion ?? 'Independiente',
+    Ubicación: fields.ubicacion ?? 'Phandalin y alrededores',
+    Amenaza: fields.amenaza ?? 'Variable',
+    Estado: fields.estado ?? 'Activo',
+    Comportamiento: fields.comportamiento ?? 'Comportamiento pendiente de concretar.',
+    Habilidades: fields.habilidades ?? 'Capacidades pendientes de concretar.',
+    Pistas: fields.pistas ?? 'Sin pistas directas.',
+    'Uso en mesa': fields.usoEnMesa ?? 'Usar como amenaza, pista viva o presión táctica.',
+  }
+}
+
+function eventPublicFields(fields) {
+  return {
+    Descripción: fields.descripcion ?? 'Evento pendiente de desarrollar.',
+    Historia: fields.historia ?? fields.descripcion ?? 'Historia pendiente de concretar.',
+    Época: fields.epoca ?? 'Por fechar',
+    Lugar: fields.lugar ?? 'Costa de la Espada',
+    'Facciones implicadas': fields.faccionesImplicadas ?? 'Por descubrir',
+    Estado: fields.estado ?? 'Eco activo en la campaña',
+    Importancia: fields.importancia ?? 'Importancia pendiente de concretar.',
+    Consecuencias: fields.consecuencias ?? 'Consecuencias pendientes de concretar.',
+    Pistas: fields.pistas ?? 'Sin pistas directas.',
+    Conexiones: fields.conexiones ?? 'Sin conexiones confirmadas.',
+    'Uso en mesa': fields.usoEnMesa ?? 'Usar para revelar contexto y consecuencias.',
+  }
+}
+
+function ethnicityPublicFields(fields) {
+  return {
+    Descripción: fields.descripcion ?? 'Grupo cultural pendiente de desarrollar.',
+    Historia: fields.historia ?? 'Historia pendiente de concretar.',
+    Cultura: fields.cultura ?? 'Cultura pendiente de concretar.',
+    Territorio: fields.territorio ?? 'Costa de la Espada',
+    Relaciones: fields.relaciones ?? 'Variables',
+    Tensiones: fields.tensiones ?? 'No definidas',
+    Pistas: fields.pistas ?? 'Sin pistas directas.',
+    'Uso en mesa': fields.usoEnMesa ?? 'Usar como contexto social.',
+  }
+}
+
+function mythPublicFields(fields) {
+  return {
+    Descripción: fields.descripcion ?? fields.historia ?? 'Mito pendiente de desarrollar.',
+    Historia: fields.historia ?? 'Historia pendiente de concretar.',
+    Moral: fields.moral ?? 'Ambigua',
+    'Significado cultural': fields.significadoCultural ?? 'Tradición oral o religiosa.',
+    Variantes: fields.variantes ?? 'Sin variantes registradas.',
+    Pistas: fields.pistas ?? 'Sin pistas directas.',
+    'Uso en mesa': fields.usoEnMesa ?? 'Usar como mito, profecía o pista simbólica.',
   }
 }
 
@@ -124,6 +202,22 @@ const placeholderPersonValues = new Set([
 function firstMeaningfulPersonValue(...values) {
   return values.find(
     (value) => typeof value === 'string' && value.trim().length > 0 && !placeholderPersonValues.has(value.trim()),
+  )
+}
+
+function firstMeaningfulLoreValue(...values) {
+  return values.find(
+    (value) => typeof value === 'string' && value.trim().length > 0 && !placeholderPersonValues.has(value.trim()),
+  )
+}
+
+function firstShortLoreValue(maxLength, ...values) {
+  return values.find(
+    (value) =>
+      typeof value === 'string' &&
+      value.trim().length > 0 &&
+      value.trim().length <= maxLength &&
+      !placeholderPersonValues.has(value.trim()),
   )
 }
 
@@ -1027,6 +1121,7 @@ async function main() {
   await rewriteExistingLoreText(campaign.id, new Set(entries.map((entry) => entry.id)))
   await normalizeRemainingOrganizations(campaign.id)
   await normalizeRemainingPersons(campaign.id)
+  await normalizeRemainingLoreFields(campaign.id)
   await upsertLoreLinks(idByKey)
   await rewriteQuests(campaign.id)
   await rewriteTimeline(campaign.id)
@@ -1354,6 +1449,278 @@ async function normalizeRemainingPersons(campaignId) {
       throw new Error(`Could not normalize person "${entry.name}" (${entry.id}): ${error.message}`)
     }
   }
+}
+
+async function normalizeRemainingLoreFields(campaignId) {
+  const existingLore = await listLore(campaignId)
+
+  for (const entry of existingLore) {
+    const nextPublicFields = normalizeLoreFieldsForEntry(entry)
+
+    if (!nextPublicFields) {
+      continue
+    }
+
+    const { error } = await supabase
+      .from('lore_entries')
+      .update({ publicFields: nextPublicFields, updatedAt: now })
+      .eq('id', entry.id)
+
+    if (error) {
+      throw new Error(`Could not normalize lore entry "${entry.name}" (${entry.id}): ${error.message}`)
+    }
+  }
+}
+
+function normalizeLoreFieldsForEntry(entry) {
+  const currentFields = entry.publicFields ?? {}
+
+  const nextPublicFields =
+    entry.type === 'artifact'
+      ? artifactPublicFields({
+          descripcion: firstMeaningfulLoreValue(currentFields.Descripción, currentFields.descripcion, currentFields.description),
+          historia: firstMeaningfulLoreValue(currentFields.Historia, currentFields.historia, currentFields.Origen),
+          origen: firstMeaningfulLoreValue(currentFields.Origen, currentFields.origen, currentFields.Historia),
+          tipo: firstMeaningfulLoreValue(currentFields.Tipo, currentFields.tipo) ?? inferArtifactType(entry.name),
+          estado: firstMeaningfulLoreValue(currentFields.Estado, currentFields.estado) ?? inferEntryState(entry.name),
+          portadorActual: firstMeaningfulLoreValue(currentFields['Portador actual'], currentFields.portadorActual) ?? inferArtifactBearer(entry.name),
+          valorNarrativo: getArtifactNarrativeValue(entry.name, currentFields),
+          conexiones: firstMeaningfulLoreValue(currentFields.Conexiones, currentFields.conexiones),
+          pistas: firstMeaningfulLoreValue(currentFields.Pistas, currentFields['Pistas rápidas'], currentFields.pistas),
+          usoEnMesa: firstMeaningfulLoreValue(currentFields['Uso en mesa'], currentFields.usoEnMesa) ?? 'Usar como pista, recompensa o presión de facción.',
+        })
+      : entry.type === 'zone'
+        ? zonePublicFields({
+            descripcion: firstMeaningfulLoreValue(currentFields.Descripción, currentFields.descripcion, currentFields.cultura, currentFields.historia),
+            historia: firstMeaningfulLoreValue(currentFields.Historia, currentFields.historia, currentFields.cultura),
+            tipoZona: firstMeaningfulLoreValue(currentFields['Tipo de zona'], currentFields.tipoZona) ?? inferZoneType(entry.name),
+            ubicacion: firstMeaningfulLoreValue(currentFields.Ubicación, currentFields.ubicacion) ?? inferZoneLocation(entry.name),
+            control: firstMeaningfulLoreValue(currentFields.Control, currentFields.control) ?? inferZoneControl(entry.name),
+            amenaza: firstMeaningfulLoreValue(currentFields.Amenaza, currentFields.amenaza) ?? inferZoneThreat(entry.name),
+            acceso: firstMeaningfulLoreValue(currentFields.Acceso, currentFields.acceso) ?? inferZoneAccess(entry.name),
+            claves: firstMeaningfulLoreValue(currentFields.Claves, currentFields.claves, currentFields.Encuentros),
+            encuentros: firstMeaningfulLoreValue(currentFields.Encuentros, currentFields.encuentros),
+            conexiones: firstMeaningfulLoreValue(currentFields.Conexiones, currentFields.conexiones),
+            pistas: firstMeaningfulLoreValue(currentFields.Pistas, currentFields['Pistas rápidas'], currentFields.pistas),
+            usoEnMesa: firstMeaningfulLoreValue(currentFields['Uso en mesa'], currentFields.usoEnMesa) ?? 'Usar como nodo de exploración y pistas.',
+          })
+        : entry.type === 'creature'
+          ? creaturePublicFields({
+              descripcion: firstMeaningfulLoreValue(currentFields.Descripción, currentFields.descripcion, currentFields.description),
+              historia: firstMeaningfulLoreValue(currentFields.Historia, currentFields.historia, currentFields.Comportamiento),
+              tipo: firstMeaningfulLoreValue(currentFields.Tipo, currentFields.tipo) ?? inferCreatureType(entry.name),
+              faccion: firstMeaningfulLoreValue(currentFields.Facción, currentFields.faccion) ?? inferPersonFaction(entry.name),
+              ubicacion: firstMeaningfulLoreValue(currentFields.Ubicación, currentFields.ubicacion) ?? inferZoneLocation(entry.name),
+              amenaza: firstMeaningfulLoreValue(currentFields.Amenaza, currentFields.amenaza) ?? inferCreatureThreat(entry.name),
+              estado: firstMeaningfulLoreValue(currentFields.Estado, currentFields.estado) ?? inferEntryState(entry.name),
+              comportamiento: firstMeaningfulLoreValue(currentFields.Comportamiento, currentFields.comportamiento),
+              habilidades: firstMeaningfulLoreValue(currentFields.Habilidades, currentFields.habilidades),
+              pistas: firstMeaningfulLoreValue(currentFields.Pistas, currentFields['Pistas rápidas'], currentFields.pistas),
+              usoEnMesa: firstMeaningfulLoreValue(currentFields['Uso en mesa'], currentFields.usoEnMesa) ?? 'Usar como amenaza, pista viva o presión táctica.',
+            })
+          : entry.type === 'event'
+            ? eventPublicFields({
+                descripcion: firstMeaningfulLoreValue(currentFields.Descripción, currentFields.descripcion, currentFields.description),
+                historia: firstMeaningfulLoreValue(currentFields.Historia, currentFields.historia, currentFields.aftermath),
+                epoca: firstMeaningfulLoreValue(currentFields.Época, currentFields.epoca) ?? inferEventEra(entry.name),
+                lugar: firstMeaningfulLoreValue(currentFields.Lugar, currentFields.lugar) ?? inferEventPlace(entry.name),
+                faccionesImplicadas:
+                  firstMeaningfulLoreValue(currentFields['Facciones implicadas'], currentFields.faccionesImplicadas) ?? inferEventFactions(entry.name),
+                estado: firstMeaningfulLoreValue(currentFields.Estado, currentFields.estado) ?? 'Consecuencias activas',
+                importancia: firstMeaningfulLoreValue(currentFields.Importancia, currentFields.significance, currentFields.Significado),
+                consecuencias: firstMeaningfulLoreValue(currentFields.Consecuencias, currentFields.aftermath),
+                pistas: firstMeaningfulLoreValue(currentFields.Pistas, currentFields['Pistas rápidas'], currentFields.pistas),
+                conexiones: firstMeaningfulLoreValue(currentFields.Conexiones, currentFields.conexiones),
+                usoEnMesa: firstMeaningfulLoreValue(currentFields['Uso en mesa'], currentFields.usoEnMesa) ?? 'Usar para revelar contexto y consecuencias.',
+              })
+            : entry.type === 'ethnicity'
+              ? ethnicityPublicFields({
+                  descripcion: firstMeaningfulLoreValue(currentFields.Descripción, currentFields.descripcion),
+                  historia: firstMeaningfulLoreValue(currentFields.Historia, currentFields.historia),
+                  cultura: firstMeaningfulLoreValue(currentFields.Cultura, currentFields.cultura),
+                  territorio: firstMeaningfulLoreValue(currentFields.Territorio, currentFields.territorio),
+                  relaciones: firstMeaningfulLoreValue(currentFields.Relaciones, currentFields.relaciones),
+                  tensiones: firstMeaningfulLoreValue(currentFields.Tensiones, currentFields.tensiones),
+                  pistas: firstMeaningfulLoreValue(currentFields.Pistas, currentFields['Pistas rápidas'], currentFields.pistas),
+                  usoEnMesa: firstMeaningfulLoreValue(currentFields['Uso en mesa'], currentFields.usoEnMesa) ?? 'Usar como contexto social.',
+                })
+              : entry.type === 'myth'
+                ? mythPublicFields({
+                    descripcion: firstMeaningfulLoreValue(currentFields.Descripción, currentFields.descripcion, currentFields.story),
+                    historia: firstMeaningfulLoreValue(currentFields.Historia, currentFields.historia, currentFields.story),
+                    moral: firstMeaningfulLoreValue(currentFields.Moral, currentFields.moral),
+                    significadoCultural:
+                      firstMeaningfulLoreValue(currentFields['Significado cultural'], currentFields.culturalSignificance) ?? currentFields.Significado,
+                    variantes: firstMeaningfulLoreValue(currentFields.Variantes, currentFields.variantes),
+                    pistas: firstMeaningfulLoreValue(currentFields.Pistas, currentFields['Pistas rápidas'], currentFields.pistas),
+                    usoEnMesa: firstMeaningfulLoreValue(currentFields['Uso en mesa'], currentFields.usoEnMesa) ?? 'Usar como mito, profecía o pista simbólica.',
+                  })
+                : undefined
+
+  if (!nextPublicFields || JSON.stringify(nextPublicFields) === JSON.stringify(currentFields)) {
+    return undefined
+  }
+
+  return nextPublicFields
+}
+
+function inferEntryState(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('registro') || normalizedName.includes('propiedad')) return 'En movimiento'
+  if (normalizedName.includes('caida')) return 'Pasado, con consecuencias activas'
+  if (normalizedName.includes('venomfang') || normalizedName.includes('gral') || normalizedName.includes('hogger')) return 'Activo'
+
+  return 'Por descubrir'
+}
+
+function inferArtifactType(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('registro') || normalizedName.includes('papel') || normalizedName.includes('propiedad')) return 'Documento legal'
+  if (normalizedName.includes('staff') || normalizedName.includes('baston')) return 'Foco arcano'
+  if (normalizedName.includes('forja')) return 'Instalación arcana'
+
+  return 'Artefacto'
+}
+
+function inferArtifactBearer(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('registro') || normalizedName.includes('propiedad')) return 'Boris Kamenov, hasta que la presión lo obliga a moverlo'
+  if (normalizedName.includes('baston')) return 'Asociado a Nezznar'
+  if (normalizedName.includes('staff')) return 'Custodia arcana de Tresendar'
+
+  return 'Desconocido'
+}
+
+function getArtifactNarrativeValue(name, currentFields) {
+  const normalizedName = normalize(name)
+  const inferredValue = inferArtifactValue(name)
+
+  if (
+    normalizedName.includes('registro') ||
+    normalizedName.includes('propiedad') ||
+    normalizedName.includes('forja') ||
+    normalizedName.includes('baston')
+  ) {
+    return inferredValue
+  }
+
+  return firstShortLoreValue(120, currentFields['Valor narrativo'], currentFields.valorNarrativo) ?? inferredValue
+}
+
+function inferArtifactValue(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('registro') || normalizedName.includes('propiedad')) {
+    return 'Llave legal de la campaña: legitima o bloquea la explotación de la mina.'
+  }
+
+  if (normalizedName.includes('forja')) return 'Premio, peligro y prueba de que la Cueva del Eco no es solo una mina.'
+
+  return 'Pieza con valor narrativo, táctico o simbólico.'
+}
+
+function inferZoneType(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('cueva') || normalizedName.includes('mina')) return 'Dungeon / mina arcana'
+  if (normalizedName.includes('mansion') || normalizedName.includes('tresendar')) return 'Guarida urbana'
+  if (normalizedName.includes('ayuntamiento') || normalizedName.includes('exchange') || normalizedName.includes('coster')) return 'Zona social'
+  if (normalizedName.includes('guarida') || normalizedName.includes('castillo')) return 'Guarida enemiga'
+
+  return 'Localización'
+}
+
+function inferZoneLocation(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('cueva') || normalizedName.includes('eco')) return 'Tierras mineras reclamadas por los Kamenov'
+  if (normalizedName.includes('phandalin') || normalizedName.includes('ayuntamiento') || normalizedName.includes('tresendar')) return 'Phandalin'
+  if (normalizedName.includes('thundertree') || normalizedName.includes('trueno')) return 'Thundertree'
+
+  return 'Costa de la Espada'
+}
+
+function inferZoneControl(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('tresendar') || normalizedName.includes('mansion')) return 'Sangre de Bhaal en secreto'
+  if (normalizedName.includes('cueva') || normalizedName.includes('eco')) return 'Disputado entre Kamenov, Alianza, Nezznar y cultos'
+  if (normalizedName.includes('phandalin')) return 'Autoridad civil frágil, infiltración oculta'
+  if (normalizedName.includes('castillo') || normalizedName.includes('anillo')) return 'Anillos de Bronce'
+
+  return 'Disputado'
+}
+
+function inferZoneThreat(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('cueva') || normalizedName.includes('tresendar') || normalizedName.includes('castillo')) return 'Alta'
+  if (normalizedName.includes('phandalin') || normalizedName.includes('ayuntamiento')) return 'Social / encubierta'
+
+  return 'Variable'
+}
+
+function inferZoneAccess(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('mansion') || normalizedName.includes('tresendar')) return 'Rutas ocultas; archivo final bajo la mansión mediante el piano de Dies Irae'
+  if (normalizedName.includes('cueva') || normalizedName.includes('eco')) return 'Mapa, guía o seguimiento de facciones'
+  if (normalizedName.includes('ayuntamiento')) return 'Público de día, vigilado de noche'
+
+  return 'Exploración, permiso social o investigación'
+}
+
+function inferCreatureType(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('venomfang')) return 'Dragón verde joven'
+  if (normalizedName.includes('gral')) return 'Etin, jefe de banda'
+  if (normalizedName.includes('hogger')) return 'Bruto bandido'
+  if (normalizedName.includes('nothic')) return 'Aberración'
+
+  return 'Criatura'
+}
+
+function inferCreatureThreat(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('venomfang') || normalizedName.includes('gral')) return 'Alta'
+  if (normalizedName.includes('hogger') || normalizedName.includes('nothic')) return 'Media-alta'
+
+  return 'Variable'
+}
+
+function inferEventEra(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('pacto') || normalizedName.includes('caida')) return 'Antiguo Phandelver'
+  if (normalizedName.includes('emboscada') || normalizedName.includes('presion') || normalizedName.includes('carrera')) return 'Campaña actual'
+
+  return 'Por fechar'
+}
+
+function inferEventPlace(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('cueva') || normalizedName.includes('pacto')) return 'Cueva del Eco y tierras de Phandelver'
+  if (normalizedName.includes('phandalin')) return 'Phandalin'
+  if (normalizedName.includes('emboscada')) return 'Camino de Neverwinter a Phandalin'
+
+  return 'Costa de la Espada'
+}
+
+function inferEventFactions(name) {
+  const normalizedName = normalize(name)
+
+  if (normalizedName.includes('pacto')) return 'Humanos, altos elfos, enanos de las montañas y Alianza de los Lores'
+  if (normalizedName.includes('emboscada')) return 'Anillos de Bronce, Sangre de Bhaal, Boris Kamenov'
+  if (normalizedName.includes('presion')) return 'Sangre de Bhaal, Phandalin, Alianza de los Lores'
+  if (normalizedName.includes('carrera')) return 'Kamenov, Nezznar, Alianza de los Lores, Culto de Tiamat'
+
+  return 'Por descubrir'
 }
 
 function inferPersonFaction(name) {

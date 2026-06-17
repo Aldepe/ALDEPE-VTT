@@ -38,6 +38,15 @@ export interface DossierCell {
   fields?: DossierFact[]
 }
 
+export interface DossierClock {
+  id: string
+  title: string
+  detail: string
+  max: number
+  initial: number
+  segments: string[]
+}
+
 export const bloodOfBhaalDossier = {
   title: 'Operativo Sangre de Bhaal',
   subtitle: 'Red secreta de Phandalin',
@@ -52,7 +61,52 @@ export const bloodOfBhaalDossier = {
     { label: 'Alijos', value: '6', detail: 'Separados por función: combate, fuga, identidad, cifra, ritual y chantaje.' },
     { label: 'Palomares', value: '2', detail: 'Comunicación lenta con códigos de cinta, grano y cera.' },
     { label: 'Exposición', value: 'Baja', detail: 'Cada pieza sabe poco. La red cae por acumulación, no por una confesión.' },
+    { label: 'Objetivo real', value: '1 papel', detail: 'Localizar, copiar, desacreditar o robar el registro de propiedad Kamenov.' },
   ],
+  clocks: [
+    {
+      id: 'document-location',
+      title: 'Rastro del documento',
+      detail: 'Mide cuánto ha avanzado la Sangre de Bhaal hacia la ubicación exacta del registro de propiedad.',
+      max: 6,
+      initial: 1,
+      segments: [
+        'Saben que Boris trae papeles.',
+        'Identifican que no es una carta ordinaria.',
+        'Aíslan quién lo ha visto.',
+        'Detectan el primer escondite.',
+        'Preparan sustitución o robo.',
+        'Fuerzan traslado al archivo bajo Tresendar.',
+      ],
+    },
+    {
+      id: 'player-pressure',
+      title: 'Presión de los players',
+      detail: 'Sube cuando investigan, protegen testigos o rompen alijos. A más presión, la secta comete errores.',
+      max: 5,
+      initial: 0,
+      segments: [
+        'Preguntas incómodas.',
+        'Un informante cambia de bando.',
+        'Un alijo queda expuesto.',
+        'La célula mueve una reunión.',
+        'Nezznar exige una acción arriesgada.',
+      ],
+    },
+    {
+      id: 'vault-lockdown',
+      title: 'Cierre de la bóveda',
+      detail: 'Mide cuánto se ha blindado el destino final bajo la mansión. Si llega al máximo, el acceso requiere resolver el piano.',
+      max: 4,
+      initial: 0,
+      segments: [
+        'Archivo limpio preparado.',
+        'Piano afinado con sigilo de sangre.',
+        'Custodio asignado a la sala de música.',
+        'Documento sellado bajo Tresendar.',
+      ],
+    },
+  ] satisfies DossierClock[],
   cells: [
     {
       name: 'Cuchillos de Medianoche',
@@ -100,6 +154,208 @@ export const bloodOfBhaalDossier = {
     },
   ],
   views: [
+    {
+      id: 'document-hunt',
+      label: 'Documento',
+      title: 'Caza del registro de propiedad',
+      eyebrow: 'Cadena de custodia, presión y traslado',
+      summary:
+        'El documento no empieza en una fortaleza. Empieza como un papel valioso en manos de un oportunista nervioso. La gracia del misterio es que cada día alguien lo mueve, lo mira, lo copia o pregunta por él sin decir su nombre real.',
+      items: [
+        {
+          title: 'Estado inicial: escondite vulnerable',
+          detail:
+            'Boris conserva el registro en una carpeta impermeable dentro de su equipaje reforzado. El cofre duerme en una habitación alquilada y solo parece importante si alguien sabe leer sellos antiguos.',
+          fields: [
+            { label: 'Ubicación inicial', value: 'Habitación de Boris / cofre de viaje' },
+            { label: 'Protección', value: 'Llave simple, orgullo de Boris, escolta distraída' },
+            { label: 'Error de Boris', value: 'Mira el cofre cuando se habla de la mina' },
+            { label: 'Riesgo', value: 'Robo fácil, copia mala o mancha legal' },
+          ],
+          checks: [
+            'Insight DC 13 para notar que Boris protege un bulto concreto, no todo el equipaje.',
+            'Investigation DC 14 para distinguir sello antiguo auténtico de papeles comerciales.',
+            'Perception DC 15 para ver a un recadero marcar la puerta con tiza roja tras una conversación.',
+          ],
+          clues: [
+            'Boris toca el cierre del cofre cuando alguien menciona a la Alianza de los Lores.',
+            'Un mozo pregunta demasiadas veces si el equipaje debe subirse o bajarse.',
+          ],
+          dmNotes: [
+            'Si los players ofrecen custodia inteligente, el documento salta a una ubicación intermedia antes de lo previsto.',
+          ],
+        },
+        {
+          title: 'Ubicaciones intermedias',
+          detail:
+            'La red no necesita robarlo al primer intento. Puede provocar que Boris lo mueva y así revelar quién lo custodia realmente.',
+          fields: [
+            { label: 'Paso 1', value: 'Cofre de viaje de Boris' },
+            { label: 'Paso 2', value: 'Caja municipal del ayuntamiento' },
+            { label: 'Paso 3', value: 'Custodia falsa de Manos Limpias' },
+            { label: 'Destino final', value: 'Archivo bajo la mansión Tresendar' },
+          ],
+          consequences: [
+            'Si el grupo falla dos escenas de vigilancia, el documento pasa al ayuntamiento.',
+            'Si la Sangre de Bhaal consigue una copia parcial, prepara una falsificación para sembrar disputa legal.',
+            'Si los players capturan a un informante, el traslado final ocurre de noche y deja rastro en el piano.',
+          ],
+          clues: [
+            'Sello de cera rehecho con demasiada limpieza.',
+            'Factura de mensajería sin peso declarado.',
+            'Un testigo recuerda oír tres notas de piano desde una casa que debería estar abandonada.',
+          ],
+        },
+        {
+          title: 'Qué hace la secta cada día',
+          detail:
+            'Cada amanecer asignan una tarea pequeña: observar, contrastar, presionar, ensuciar una prueba o preparar una salida. Nunca hacen dos acciones ruidosas seguidas.',
+          fields: [
+            { label: 'Día tranquilo', value: 'Vigilar y confirmar' },
+            { label: 'Día tenso', value: 'Mover informante y quemar pista' },
+            { label: 'Día crítico', value: 'Forzar traslado o robo indirecto' },
+          ],
+          checks: [
+            'Cada día, el DM elige una acción de célula y los players pueden contrarrestarla con una escena urbana.',
+            'Tres éxitos acumulados de players congelan el reloj del documento durante un día.',
+            'Dos fallos seguidos permiten a la secta avanzar el reloj de cierre de la bóveda.',
+          ],
+          dmNotes: [
+            'Esto convierte Phandalin en tablero vivo: no hace falta combate diario; basta con señales, presión social y cambios de custodia.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'daily-intelligence',
+      label: 'Día a día',
+      title: 'Ciclo diario de inteligencia',
+      eyebrow: 'Observación, contraste y acción mínima',
+      summary:
+        'La Sangre de Bhaal opera como una célula profesional en miniatura: observa mucho, actúa poco y jamás revela todo por una sola pieza. Cada día deja una huella pequeña que los players pueden convertir en escena.',
+      items: [
+        {
+          title: 'Fase 1: recogida',
+          detail:
+            'Ojos del Barro recoge rumores, entradas y salidas. No sabe qué busca. Solo marca quién se acercó a Boris, quién preguntó por la mina y quién duerme con armas cerca.',
+          fields: [
+            { label: 'Ventana', value: 'Amanecer y mediodía' },
+            { label: 'Cobertura', value: 'Limosna, establo, recados' },
+            { label: 'Salida visible', value: 'Marcas de tiza o piedras' },
+          ],
+          checks: [
+            'Perception DC 13 para ver una marca repetida en dos calles.',
+            'Insight DC 14 para detectar que el mismo borracho escucha más que bebe.',
+            'Persuasion DC 13 para que un informante menor admita qué le pagan por mirar.',
+          ],
+        },
+        {
+          title: 'Fase 2: contraste',
+          detail:
+            'Manos Limpias compara rumores con libros contables, habitaciones alquiladas y horarios de mensajería. Buscan contradicciones, no certezas.',
+          fields: [
+            { label: 'Ventana', value: 'Mediodía y tarde' },
+            { label: 'Cobertura', value: 'Facturas, portes, permisos' },
+            { label: 'Error', value: 'Columnas demasiado limpias' },
+          ],
+          checks: [
+            'Investigation DC 15 en libros para ver que una factura existe solo para justificar movimiento de una caja.',
+            'History DC 13 para reconocer que el sello de Phandelver está copiado de una versión posterior.',
+          ],
+          clues: [
+            'Un porte menciona "papel mojado" aunque no llovió.',
+            'El mismo número de recibo aparece en dos negocios tapadera.',
+          ],
+        },
+        {
+          title: 'Fase 3: acción mínima',
+          detail:
+            'Si tienen una hipótesis, no atacan: hacen que otra persona mueva la pieza. Un susto, una carta falsa, una pregunta legal o un ruido nocturno bastan.',
+          fields: [
+            { label: 'Ventana', value: 'Atardecer o noche' },
+            { label: 'Objetivo', value: 'Provocar traslado' },
+            { label: 'Regla', value: 'Una acción visible por día' },
+          ],
+          consequences: [
+            'Carta falsa de la Alianza: Boris consulta el cofre.',
+            'Robo menor en la posada: Sildar recomienda custodia municipal.',
+            'Rumor sobre Iarno: el grupo mira hacia Tresendar antes de saber por qué.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'tresendar-vault',
+      label: 'Bóveda',
+      title: 'Archivo bajo la mansión Tresendar',
+      eyebrow: 'Piano, réquiem y destino final',
+      summary:
+        'El destino final del documento es un archivo sellado bajo la mansión. La entrada no se abre con una llave normal: hay que tocar el motivo de Dies Irae en el piano roto de la sala de música.',
+      items: [
+        {
+          title: 'La sala del piano',
+          detail:
+            'La mansión conserva un piano ennegrecido, cubierto de polvo excepto por ocho teclas. No parece un puzzle hasta que los players relacionan música, funeral, Bhaal y las notas repetidas en mensajes cifrados.',
+          fields: [
+            { label: 'Lugar', value: 'Sala de música, ala oeste de Tresendar' },
+            { label: 'Señal', value: 'Ocho teclas menos polvorientas' },
+            { label: 'Motivo', value: 'Fa-Mi-Fa-Re-Mi-Do-Re-Re' },
+            { label: 'Tema', value: 'Dies Irae, muerte y juicio' },
+          ],
+          checks: [
+            'Perception DC 14 para ver polvo desplazado en teclas concretas.',
+            'Performance DC 13 para reproducir el motivo si alguien ya lo oyó.',
+            'Religion DC 15 para conectar el réquiem con Bhaal y el archivo de muerte.',
+            'Investigation DC 16 para descubrir que las notas aparecen como iniciales en tres mensajes cifrados.',
+          ],
+          consequences: [
+            'Éxito limpio: se abre una escalera estrecha bajo el piano.',
+            'Una nota errónea: el mecanismo no abre y sube el reloj de cierre de la bóveda.',
+            'Tres errores: aparece un custodio menor y se quema un documento señuelo.',
+          ],
+        },
+        {
+          title: 'Archivo del Réquiem',
+          detail:
+            'No es una mazmorra enorme. Es una cámara administrativa siniestra: estanterías, sellos, copias, identidades y una caja de hierro con el registro o su falsificación.',
+          fields: [
+            { label: 'Contenido clave', value: 'Registro, copia parcial, sello falso' },
+            { label: 'Custodio', value: 'Iniciado de Venas del Pueblo' },
+            { label: 'Trampa', value: 'Tinta férrica que revela intrusos' },
+            { label: 'Salida', value: 'Pasillo al antiguo almacén' },
+          ],
+          contents: [
+            'Caja de hierro con compartimento doble: registro auténtico si el reloj llegó al máximo, copia si aún está en tránsito.',
+            'Libro de observación con nombres de players, rutas, heridas y preguntas hechas en Phandalin.',
+            'Tres identidades limpias para mover a un agente fuera del pueblo.',
+            'Plano incompleto de la Cueva del Eco con marcas de extracción de Nezznar.',
+          ],
+          security: [
+            'Arcana DC 15 para notar que la tinta del escritorio se oscurece cerca de sangre reciente.',
+            'Thieves Tools DC 16 para abrir la caja sin activar la mancha de prueba.',
+            'Stealth DC 14 para moverse sin hacer sonar tubos de vidrio colgados tras una cortina.',
+          ],
+          clues: [
+            'La copia falsa cambia un nombre de alto elfo por un testigo inexistente.',
+            'El libro de observación revela que la secta todavía no conoce toda la ruta de la mina.',
+          ],
+        },
+        {
+          title: 'Cómo sembrar el puzzle antes de la mansión',
+          detail:
+            'No debe parecer un acertijo caído del cielo. Repite el motivo como rumor, canción, código y obsesión antes de que el grupo vea el piano.',
+          clues: [
+            'Un niño tararea cuatro notas después de escuchar al mozo de establo.',
+            'Una carta cifrada usa las iniciales F-M-F-R-M-D-R-R como columnas de contabilidad.',
+            'Sister Garaele reconoce la melodía como una secuencia funeraria antigua.',
+            'Un iniciado de sangre golpea la mesa con el ritmo cuando está nervioso.',
+          ],
+          dmNotes: [
+            'Si nadie sabe música, deja que Religion, History o Investigation descubran el orden. El puzzle debe premiar atención, no bloquear la campaña.',
+          ],
+        },
+      ],
+    },
     {
       id: 'communications',
       label: 'Comunicaciones',

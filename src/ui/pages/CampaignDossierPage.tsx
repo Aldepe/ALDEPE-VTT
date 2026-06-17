@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Boxes, CheckCircle2, Circle, Eye, KeyRound, Network, ScrollText, ShieldAlert, Skull, UsersRound } from 'lucide-react'
+import type { CSSProperties } from 'react'
+import { Boxes, CheckCircle2, Circle, Eye, KeyRound, Minus, Network, Plus, ScrollText, ShieldAlert, Skull, UsersRound } from 'lucide-react'
 import { bloodOfBhaalDossier, type DossierItem } from '@shared/constants/phandelverDossier'
 import { EmptyState } from '@ui/components/EmptyState'
 
@@ -46,6 +47,9 @@ function renderDetailList(title: string, items?: string[]) {
 export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
   const [activeViewId, setActiveViewId] = useState(bloodOfBhaalDossier.views[0].id)
   const [reviewedItemIds, setReviewedItemIds] = useState<string[]>([])
+  const [clockValues, setClockValues] = useState<Record<string, number>>(() =>
+    Object.fromEntries(bloodOfBhaalDossier.clocks.map((clock) => [clock.id, clock.initial])),
+  )
   const activeView = useMemo(
     () => bloodOfBhaalDossier.views.find((view) => view.id === activeViewId) ?? bloodOfBhaalDossier.views[0],
     [activeViewId],
@@ -55,6 +59,18 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
     setReviewedItemIds((current) =>
       current.includes(itemId) ? current.filter((reviewedItemId) => reviewedItemId !== itemId) : [...current, itemId],
     )
+  }
+
+  function nudgeClock(clockId: string, delta: number) {
+    const clock = bloodOfBhaalDossier.clocks.find((candidate) => candidate.id === clockId)
+    if (!clock) {
+      return
+    }
+
+    setClockValues((current) => {
+      const nextValue = Math.min(clock.max, Math.max(0, (current[clockId] ?? clock.initial) + delta))
+      return { ...current, [clockId]: nextValue }
+    })
   }
 
   if (!isDm) {
@@ -99,6 +115,52 @@ export function CampaignDossierPage({ isDm }: CampaignDossierPageProps) {
           </section>
         ))}
       </div>
+
+      <section className="dossier-clocks section-panel" aria-label="Relojes operativos">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Relojes de misterio</p>
+            <h3>Estado vivo de la operación</h3>
+          </div>
+          <KeyRound size={22} aria-hidden="true" />
+        </div>
+        <div className="dossier-clock-grid">
+          {bloodOfBhaalDossier.clocks.map((clock) => {
+            const value = clockValues[clock.id] ?? clock.initial
+            return (
+              <article className="dossier-clock" key={clock.id}>
+                <div className="dossier-clock-heading">
+                  <div>
+                    <h4>{clock.title}</h4>
+                    <p>{clock.detail}</p>
+                  </div>
+                  <div className="dossier-clock-controls">
+                    <button className="icon-button" onClick={() => nudgeClock(clock.id, -1)} title={`Bajar ${clock.title}`} type="button">
+                      <Minus size={15} aria-hidden="true" />
+                    </button>
+                    <strong>{value}/{clock.max}</strong>
+                    <button className="icon-button" onClick={() => nudgeClock(clock.id, 1)} title={`Subir ${clock.title}`} type="button">
+                      <Plus size={15} aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+                <div className="dossier-clock-track" style={{ '--clock-slots': clock.max } as CSSProperties} aria-hidden="true">
+                  {Array.from({ length: clock.max }).map((_, index) => (
+                    <span className={index < value ? 'is-filled' : undefined} key={`${clock.id}-${index}`} />
+                  ))}
+                </div>
+                <ol className="dossier-clock-segments">
+                  {clock.segments.map((segment, index) => (
+                    <li className={index < value ? 'is-active' : undefined} key={segment}>
+                      {segment}
+                    </li>
+                  ))}
+                </ol>
+              </article>
+            )
+          })}
+        </div>
+      </section>
 
       <section className="dossier-cells section-panel" aria-labelledby="cells-title">
         <div className="panel-heading">
